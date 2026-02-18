@@ -34,10 +34,10 @@ export const requireRole = (...roles) => {
 export const generateToken = (user) => {
   return jwt.sign(
     {
-      userId: user.UserID,
-      username: user.Username,
-      roleName: user.RoleName,
-      email: user.Email
+      userId: user.user_id,
+      username: user.username,
+      roleName: user.role_name,
+      email: user.email
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRATION || '24h' }
@@ -47,8 +47,8 @@ export const generateToken = (user) => {
 export const generateRefreshToken = (user) => {
   return jwt.sign(
     {
-      userId: user.UserID,
-      username: user.Username
+      userId: user.user_id,
+      username: user.username
     },
     process.env.JWT_SECRET + '_refresh',
     { expiresIn: process.env.REFRESH_TOKEN_EXPIRATION || '7d' }

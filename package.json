@@ -7,11 +7,11 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "cross-env NODE_ENV=test jest --detectOpenHandles --runInBand",
-    "test:smoke": "cross-env NODE_ENV=test jest tests/backend/smoke.test.js --detectOpenHandles --runInBand",
-    "test:journey": "cross-env NODE_ENV=test jest tests/backend/journey.test.js --detectOpenHandles --runInBand",
-    "test:all": "cross-env NODE_ENV=test jest --detectOpenHandles --runInBand",
-    "test:coverage": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles --runInBand",
+    "test": "cross-env NODE_ENV=test jest --config jest.config.cjs --detectOpenHandles --runInBand",
+    "test:smoke": "cross-env NODE_ENV=test jest --config jest.config.cjs tests/backend/smoke.test.js --detectOpenHandles --runInBand",
+    "test:journey": "cross-env NODE_ENV=test jest --config jest.config.cjs tests/backend/journey.test.js --detectOpenHandles --runInBand",
+    "test:all": "cross-env NODE_ENV=test jest --config jest.config.cjs --detectOpenHandles --runInBand",
+    "test:coverage": "cross-env NODE_ENV=test jest --config jest.config.cjs --coverage --detectOpenHandles --runInBand",
     "lint": "eslint src/",
     "migrate": "node scripts/migrate.js"
   },
@@ -34,8 +34,7 @@
     "express-validator": "^7.0.0",
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.0",
-    "mssql": "^9.0.0",
-    "odbc": "^2.4.9",
+    "mysql2": "^3.17.2",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

@@ -1,100 +1,39 @@
-import sql from 'mssql';
-import odbc from 'odbc';
+import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Configuración para mssql driver (TCP/IP)
-const mssqlConfig = {
-  server: process.env.DB_SERVER || 'DESKTOP-UDAM3NC',
-  database: process.env.DB_NAME,
-  authentication: {
-    type: 'ntlm',
-    options: {
-      domain: ''
-    }
-  },
-  options: {
-    encrypt: false,
-    trustServerCertificate: true,
-    connectionTimeout: 30000,
-    requestTimeout: 60000,
-    pool: {
-      min: parseInt(process.env.DB_POOL_MIN) || 2,
-      max: parseInt(process.env.DB_POOL_MAX) || 5,
-      idleTimeoutMillis: 60000
-    }
-  }
+// Configuración para MySQL
+const mysqlConfig = {
+  host: process.env.DB_SERVER || 'localhost',
+  port: parseInt(process.env.DB_PORT) || 3306,
+  database: process.env.DB_NAME || 'minimarket_test',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'root',
+  waitForConnections: true,
+  connectionLimit: parseInt(process.env.DB_POOL_MAX) || 5,
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelayMs: 0,
+  decimalNumbers: true,
+  supportBigNumbers: true,
+  bigNumberStrings: false
 };
 
-// Conexión ODBC (Named Pipes - más compatible con Windows Authentication)
-const odbcConnectionString = `Driver={SQL Server};Server=DESKTOP-UDAM3NC;Database=${process.env.DB_NAME};Trusted_Connection=yes;`;
-
 let pool = null;
-let useOdbc = false;
 
 export const getPool = async () => {
   if (!pool) {
-    let mssqlError = null;
-    
     try {
-      // Intentar primero con mssql
-      pool = new sql.ConnectionPool(mssqlConfig);
-      await pool.connect();
-      useOdbc = false;
-      console.log('✓ Conexión a SQL Server (mssql/TCP) establecida');
+      pool = await mysql.createPool(mysqlConfig);
+      console.log('✓ Conexión a MySQL establecida');
+      console.log(`  Host: ${mysqlConfig.host}:${mysqlConfig.port}`);
+      console.log(`  Database: ${mysqlConfig.database}`);
       return pool;
     } catch (err) {
-      mssqlError = err;
-      console.error('✗ Error con mssql driver:', err.message);
-    }
-    
-    // Fallback a ODBC
-    console.log('Intentando ODBC (Named Pipes)...');
-    
-    try {
-      const connection = await odbc.connect(odbcConnectionString);
-      console.log('✓ Conexión ODBC (Named Pipes) establecida');
-      
-      // Crear un wrapper que sea compatible
-      pool = {
-        _odbcConnection: connection,
-        _closed: false,
-        request: function() {
-          if (this._closed) {
-            throw new Error('Connection is closed');
-          }
-          const self = this;
-          return {
-            _connection: self._odbcConnection,
-            _inputs: {},
-            input: function(name, value) {
-              this._inputs[name] = value;
-              return this;
-            },
-            query: async function(sqlQuery) {
-              try {
-                const result = await this._connection.query(sqlQuery);
-                return { recordset: result, rowsAffected: [result?.length || 0] };
-              } catch (err) {
-                throw err;
-              }
-            }
-          };
-        },
-        close: async function() {
-          if (this._odbcConnection && !this._closed) {
-            await this._odbcConnection.close();
-            this._closed = true;
-          }
-        }
-      };
-      useOdbc = true;
-      return pool;
-    } catch (odbcErr) {
-      console.error('✗ Error con ODBC:', odbcErr.message);
+      console.error('✗ Error conectando a MySQL:', err.message);
       pool = null;
-      throw new Error(`No se pudo conectar con mssql ni ODBC: ${mssqlError.message}`);
+      throw err;
     }
   }
   
@@ -104,62 +43,38 @@ export const getPool = async () => {
 export const closePool = async () => {
   if (pool) {
     try {
-      await pool.close();
+      await pool.end();
+      console.log('✓ Conexión a MySQL cerrada');
     } catch (err) {
       console.error('Error cerrando pool:', err.message);
     }
     pool = null;
-    useOdbc = false;
-    console.log('✓ Conexión a SQL Server cerrada');
   }
 };
 
-// Convertir query de parámetros nominales (@name) a posicionales (?)
-// para compatibilidad con ODBC
-const convertQueryForODBC = (query, params) => {
-  let convertedQuery = query;
-  const paramValues = [];
-  
-  // Encontrar todos los parámetros nominales en la query
-  const paramPattern = /@(\w+)/g;
-  let match;
-  
-  while ((match = paramPattern.exec(query)) !== null) {
-    const paramName = match[1];
-    if (params[paramName] !== undefined) {
-      paramValues.push(params[paramName]);
-    }
-  }
-  
-  // Reemplazar @name con ? en orden
-  convertedQuery = query.replace(/@\w+/g, '?');
-  
-  return { query: convertedQuery, params: paramValues };
-};
-
-export const executeQuery = async (query, params = {}) => {
+// Ejecutar query con parámetros posicionales (?)
+export const executeQuery = async (query, params = []) => {
   try {
     const connPool = await getPool();
-    const request = connPool.request();
-
-    if (useOdbc) {
-      // Para ODBC: convertir parámetros nominales a posicionales
-      const { query: convertedQuery, params: convertedParams } = convertQueryForODBC(query, params);
-      const result = await connPool._odbcConnection.query(convertedQuery, convertedParams);
-      return { recordset: result, rowsAffected: [result?.length || 0] };
-    } else {
-      // Para mssql: usar parámetros nominales
-      for (const [key, value] of Object.entries(params)) {
-        request.input(key, value);
-      }
-      const result = await request.query(query);
-      return result;
+    const connection = await connPool.getConnection();
+    
+    try {
+      // Si params es un objeto, convertirlo a array
+      const paramArray = Array.isArray(params) ? params : Object.values(params);
+      
+      const [rows, fields] = await connection.query(query, paramArray);
+      
+      // Retornar en formato compatible con tests esperados
+      return {
+        recordset: rows,
+        rowsAffected: [rows.length]
+      };
+    } finally {
+      connection.release();
     }
   } catch (error) {
     console.error('Error ejecutando query:', error.message);
-    // Resetear pool para reintentar
-    pool = null;
-    useOdbc = false;
+    console.error('Query:', query);
     throw error;
   }
 };

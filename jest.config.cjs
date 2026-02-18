@@ -1,12 +1,12 @@
 /**
  * Configuración de Jest para Backend con ES Modules
  */
-export default {
+module.exports = {
   testEnvironment: 'node',
   transform: {
     '^.+\\.js$': 'babel-jest'
   },
-  setupFilesAfterEnv: ['<rootDir>/setup-tests.js'],
+  setupFilesAfterEnv: ['<rootDir>/setup-tests.cjs'],
   testMatch: ['**/tests/**/*.test.js'],
   collectCoverageFrom: [
     'src/**/*.js',
@@ -16,7 +16,7 @@ export default {
   coverageDirectory: './coverage',
   verbose: true,
   forceExit: true,
-  clearMocks: false,
+  clearMocks: true,
   testTimeout: 30000,
   maxWorkers: 1
 };
