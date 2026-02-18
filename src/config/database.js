@@ -4,8 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const config = {
-  server: process.env.DB_SERVER,
-  port: parseInt(process.env.DB_PORT) || 1433,
+  server: process.env.DB_SERVER || 'localhost',
   database: process.env.DB_NAME,
   authentication: {
     type: 'default',
@@ -17,12 +16,12 @@ const config = {
   options: {
     encrypt: false,
     trustServerCertificate: true,
-    connectionTimeout: 15000,
-    requestTimeout: 30000,
+    connectionTimeout: 30000,
+    requestTimeout: 60000,
     pool: {
-      min: parseInt(process.env.DB_POOL_MIN) || 5,
-      max: parseInt(process.env.DB_POOL_MAX) || 10,
-      idleTimeoutMillis: 30000
+      min: parseInt(process.env.DB_POOL_MIN) || 2,
+      max: parseInt(process.env.DB_POOL_MAX) || 5,
+      idleTimeoutMillis: 60000
     }
   }
 };
@@ -52,19 +51,23 @@ export const closePool = async () => {
 };
 
 export const executeQuery = async (query, params = {}) => {
-  const pool = await getPool();
-  const request = pool.request();
-
-  // Agregar parámetros si existen
-  for (const [key, value] of Object.entries(params)) {
-    request.input(key, value);
-  }
-
   try {
+    const pool = await getPool();
+    const request = pool.request();
+
+    // Agregar parámetros si existen
+    for (const [key, value] of Object.entries(params)) {
+      request.input(key, value);
+    }
+
     const result = await request.query(query);
     return result;
   } catch (error) {
     console.error('Error ejecutando query:', error.message);
+    // Si la conexión falla, resetear el pool para reintentar
+    if (pool && (error.code === 'ECONNCLOSED' || error.code === 'ETIMEOUT')) {
+      pool = null;
+    }
     throw error;
   }
 };
