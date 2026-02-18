@@ -34,6 +34,7 @@
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.0",
     "mssql": "^9.0.0",
+    "odbc": "^2.4.9",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
