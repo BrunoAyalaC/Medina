@@ -175,14 +175,14 @@ export default function CashDrawerPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600 text-sm mb-1">Total Ventas</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                 <p className="text-gray-700 text-sm mb-1">Total Ventas</p>
+                     <p className="text-2xl font-bold text-blue-700">
                       S/. {parseFloat(currentCashDrawer.TotalSales || 0).toFixed(2)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600 text-sm mb-1">Saldo Actual</p>
-                    <p className="text-2xl font-bold text-green-600">
+                 <p className="text-gray-700 text-sm mb-1">Saldo Actual</p>
+                     <p className="text-2xl font-bold text-green-700">
                       S/. {(parseFloat(currentCashDrawer.OpeningBalance || 0) + 
                             parseFloat(currentCashDrawer.TotalSales || 0)).toFixed(2)}
                     </p>
@@ -192,14 +192,14 @@ export default function CashDrawerPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowCloseModal(true)}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition flex items-center gap-2"
+                    className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-6 rounded-lg transition flex items-center gap-2"
                   >
                     <X className="w-5 h-5" />
                     Cerrar Caja
                   </button>
                   <button
                     onClick={() => handleLoadMovements(currentCashDrawer.CashDrawerID)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition flex items-center gap-2"
+                    className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-6 rounded-lg transition flex items-center gap-2"
                   >
                     <Clock className="w-5 h-5" />
                     Ver Movimientos
@@ -223,8 +223,8 @@ export default function CashDrawerPage() {
                       </thead>
                       <tbody>
                         {movements.map((movement) => (
-                          <tr key={movement.CashMovementID} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-3 px-4 text-sm text-gray-600">
+                           <tr key={movement.CashMovementID} className="border-b border-gray-100 hover:bg-gray-50">
+                             <td className="py-3 px-4 text-sm text-gray-700">
                               {new Date(movement.CreatedAt).toLocaleDateString('es-PE', {
                                 year: 'numeric',
                                 month: '2-digit',
@@ -267,9 +267,9 @@ export default function CashDrawerPage() {
               <p className="text-gray-600 mb-6">
                 Abre una caja para comenzar a registrar ventas
               </p>
-              <button
+               <button
                 onClick={() => setShowOpenModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition inline-flex items-center gap-2"
+                className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg transition inline-flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 Abrir Nueva Caja
@@ -331,8 +331,8 @@ export default function CashDrawerPage() {
                         <td className="py-3 px-4 text-sm font-semibold text-right">
                           S/. {inicial.toFixed(2)}
                         </td>
-                        <td className="py-3 px-4 text-sm font-semibold text-right text-blue-600">
-                          S/. {parseFloat(cashDrawer.TotalSales || 0).toFixed(2)}
+                     <td className="py-3 px-4 text-sm font-semibold text-right text-blue-700">
+                           S/. {parseFloat(cashDrawer.TotalSales || 0).toFixed(2)}
                         </td>
                         <td className="py-3 px-4 text-sm font-semibold text-right">
                           S/. {final.toFixed(2)}
@@ -420,11 +420,11 @@ export default function CashDrawerPage() {
               >
                 Cancelar
               </button>
-              <button
-                onClick={handleOpenCashDrawer}
-                disabled={processing}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition"
-              >
+               <button
+                 onClick={handleOpenCashDrawer}
+                 disabled={processing}
+                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition"
+               >
                 {processing ? 'Abriendo...' : 'Abrir Caja'}
               </button>
             </div>
@@ -515,11 +515,11 @@ export default function CashDrawerPage() {
               >
                 Cancelar
               </button>
-              <button
-                onClick={handleCloseCashDrawer}
-                disabled={processing}
-                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition"
-              >
+               <button
+                 onClick={handleCloseCashDrawer}
+                 disabled={processing}
+                 className="flex-1 bg-red-700 hover:bg-red-800 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition"
+               >
                 {processing ? 'Cerrando...' : 'Cerrar Caja'}
               </button>
             </div>

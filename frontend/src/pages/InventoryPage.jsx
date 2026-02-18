@@ -42,9 +42,9 @@ export default function InventoryPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Inventario</h1>
-          <p className="text-gray-600 mt-2">Gestión de productos y stock</p>
-        </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition flex items-center gap-2">
+           <p className="text-gray-700 mt-2">Gestión de productos y stock</p>
+         </div>
+         <button className="bg-blue-700 hover:bg-blue-800 text-white py-2 px-4 rounded-lg transition flex items-center gap-2">
           <Plus className="w-5 h-5" />
           Nuevo Producto
         </button>
@@ -107,10 +107,10 @@ export default function InventoryPage() {
                   const status = getStockStatus(product.StockActual, product.StockMinimo);
                   return (
                     <tr key={product.ProductID} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm">
-                        <div>
-                          <p className="font-medium text-gray-900">{product.ProductName}</p>
-                          <p className="text-gray-500 text-xs">{product.CategoryName}</p>
+                       <td className="px-6 py-4 text-sm">
+                         <div>
+                           <p className="font-medium text-gray-900">{product.ProductName}</p>
+                           <p className="text-gray-600 text-xs">{product.CategoryName}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">{product.Barcode}</td>
@@ -131,13 +131,13 @@ export default function InventoryPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <div>
-                          <p className="font-medium text-gray-900">S/. {product.SellingPrice.toFixed(2)}</p>
-                          <p className="text-gray-500 text-xs">Costo: S/. {product.CostPrice.toFixed(2)}</p>
+                         <div>
+                           <p className="font-medium text-gray-900">S/. {product.SellingPrice.toFixed(2)}</p>
+                           <p className="text-gray-600 text-xs">Costo: S/. {product.CostPrice.toFixed(2)}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm">
-                        <button className="text-blue-600 hover:text-blue-700 p-2 rounded transition">
+                       <td className="px-6 py-4 text-sm">
+                         <button className="text-blue-700 hover:text-blue-800 p-2 rounded transition">
                           <Edit2 className="w-4 h-4" />
                         </button>
                       </td>

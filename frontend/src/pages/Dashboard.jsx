@@ -43,7 +43,7 @@ export default function Dashboard() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Bienvenido al sistema de minimarket</p>
+           <p className="text-gray-700">Bienvenido al sistema de minimarket</p>
       </div>
 
       {/* Error Alert */}
@@ -60,7 +60,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Total Ventas</p>
+                <p className="text-gray-700 text-sm">Total Ventas</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   S/. {stats.TotalVentasMoneda?.toFixed(2) || '0.00'}
                 </p>
@@ -75,7 +75,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Transacciones</p>
+                <p className="text-gray-700 text-sm">Transacciones</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {stats.TotalVentas || 0}
                 </p>
@@ -90,7 +90,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Productos</p>
+                <p className="text-gray-700 text-sm">Productos</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   {stats.TotalProductos || 0}
                 </p>
@@ -105,7 +105,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Ticket Promedio</p>
+                <p className="text-gray-700 text-sm">Ticket Promedio</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">
                   S/. {stats.TicketPromedio?.toFixed(2) || '0.00'}
                 </p>
@@ -120,8 +120,8 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">Stock Crítico</p>
-                <p className="text-2xl font-bold text-red-600 mt-2">
+                <p className="text-gray-700 text-sm">Stock Crítico</p>
+                <p className="text-2xl font-bold text-red-700 mt-2">
                   {stats.ProductosCriticos || 0}
                 </p>
               </div>
@@ -145,9 +145,9 @@ export default function Dashboard() {
                   className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
                 >
                   <div>
-                    <p className="font-medium text-gray-900">{alert.ProductName}</p>
-                    <p className="text-sm text-gray-600">Stock: {alert.StockActual} / Mínimo: {alert.StockMinimo}</p>
-                  </div>
+                     <p className="font-medium text-gray-900">{alert.ProductName}</p>
+                     <p className="text-sm text-gray-700">Stock: {alert.StockActual} / Mínimo: {alert.StockMinimo}</p>
+                   </div>
                   <span className="text-red-600 font-semibold">-{alert.FaltanUnidades} unid.</span>
                 </div>
               ))}
@@ -160,14 +160,14 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Acciones Rápidas</h2>
-          <div className="space-y-2">
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition">
+           <div className="space-y-2">
+            <button className="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 px-4 rounded-lg transition">
               Abrir Caja
             </button>
-            <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition">
+            <button className="w-full bg-green-700 hover:bg-green-800 text-white py-2 px-4 rounded-lg transition">
               Nueva Venta
             </button>
-            <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition">
+            <button className="w-full bg-purple-700 hover:bg-purple-800 text-white py-2 px-4 rounded-lg transition">
               Inventario
             </button>
           </div>

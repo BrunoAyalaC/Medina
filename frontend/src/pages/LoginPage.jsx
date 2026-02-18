@@ -42,7 +42,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-8">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-lg mb-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-700 text-white rounded-lg mb-4">
             <LogIn className="w-6 h-6" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Minimarket PRO</h1>
@@ -93,10 +93,10 @@ export default function LoginPage() {
           </div>
 
           {/* Botón */}
-          <button
+           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+            className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>

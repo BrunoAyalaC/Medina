@@ -29,17 +29,17 @@ export default function CashReconciliationModal({
         </div>
 
         {/* Summary */}
-        <div className="space-y-4 mb-6">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-600 font-semibold mb-1">Monto Esperado</p>
-            <p className="text-3xl font-bold text-blue-700">
+         <div className="space-y-4 mb-6">
+           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+             <p className="text-sm text-blue-700 font-semibold mb-1">Monto Esperado</p>
+             <p className="text-3xl font-bold text-blue-700">
               S/. {expectedAmount.toFixed(2)}
             </p>
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-600 font-semibold mb-1">Monto Contado</p>
-            <p className="text-3xl font-bold text-gray-900">
+           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+             <p className="text-sm text-gray-700 font-semibold mb-1">Monto Contado</p>
+             <p className="text-3xl font-bold text-gray-900">
               S/. {actualAmount.toFixed(2)}
             </p>
           </div>
@@ -53,20 +53,20 @@ export default function CashReconciliationModal({
               : 'bg-green-50 border-green-200'
           }`}>
             <div className="flex items-start gap-3">
-              {isDifference
-                ? isSmallDifference
-                  ? <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-1" />
-                  : <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-1" />
-                : <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-1" />
+               {isDifference
+                 ? isSmallDifference
+                   ? <AlertCircle className="w-5 h-5 text-yellow-700 flex-shrink-0 mt-1" />
+                   : <AlertCircle className="w-5 h-5 text-red-700 flex-shrink-0 mt-1" />
+                 : <CheckCircle className="w-5 h-5 text-green-700 flex-shrink-0 mt-1" />
               }
               <div className="flex-1">
-                <p className={`text-sm font-semibold mb-1 ${
-                  isDifference
-                    ? isSmallDifference
-                      ? 'text-yellow-600'
-                      : 'text-red-600'
-                    : 'text-green-600'
-                }`}>
+                 <p className={`text-sm font-semibold mb-1 ${
+                   isDifference
+                     ? isSmallDifference
+                       ? 'text-yellow-700'
+                       : 'text-red-700'
+                     : 'text-green-700'
+                 }`}>
                   {isDifference
                     ? isSmallDifference
                       ? 'Diferencia Menor'
@@ -74,13 +74,13 @@ export default function CashReconciliationModal({
                     : 'Caja Cuadrada'
                   }
                 </p>
-                <p className={`text-2xl font-bold ${
-                  isDifference
-                    ? difference > 0
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                    : 'text-green-600'
-                }`}>
+                 <p className={`text-2xl font-bold ${
+                   isDifference
+                     ? difference > 0
+                       ? 'text-green-700'
+                       : 'text-red-700'
+                     : 'text-green-700'
+                 }`}>
                   {difference >= 0 ? '+' : ''} S/. {Math.abs(difference).toFixed(2)}
                 </p>
               </div>
@@ -89,22 +89,22 @@ export default function CashReconciliationModal({
         </div>
 
         {/* Details */}
-        <div className="bg-gray-50 p-4 rounded-lg mb-6 text-sm space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Diferencia en %:</span>
-            <span className="font-semibold">
+         <div className="bg-gray-50 p-4 rounded-lg mb-6 text-sm space-y-2">
+           <div className="flex justify-between">
+             <span className="text-gray-700">Diferencia en %:</span>
+             <span className="font-semibold">
               {((Math.abs(difference) / expectedAmount) * 100 || 0).toFixed(2)}%
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Margen aceptable:</span>
-            <span className="font-semibold">±S/. 1.00 (0.1%)</span>
-          </div>
-          <div className="flex justify-between pt-2 border-t border-gray-200">
-            <span className="text-gray-600">Estado:</span>
-            <span className={`font-semibold ${
-              Math.abs(difference) <= 1 ? 'text-green-600' : 'text-red-600'
-            }`}>
+           <div className="flex justify-between">
+             <span className="text-gray-700">Margen aceptable:</span>
+             <span className="font-semibold">±S/. 1.00 (0.1%)</span>
+           </div>
+           <div className="flex justify-between pt-2 border-t border-gray-200">
+             <span className="text-gray-700">Estado:</span>
+             <span className={`font-semibold ${
+               Math.abs(difference) <= 1 ? 'text-green-700' : 'text-red-700'
+             }`}>
               {Math.abs(difference) <= 1 ? 'Aceptable' : 'Revisar'}
             </span>
           </div>
@@ -130,11 +130,11 @@ export default function CashReconciliationModal({
           >
             Cancelar
           </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition"
-          >
+           <button
+             onClick={onConfirm}
+             disabled={loading}
+             className="flex-1 bg-green-700 hover:bg-green-800 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition"
+           >
             {loading ? 'Cerrando...' : 'Confirmar Cierre'}
           </button>
         </div>

@@ -152,10 +152,10 @@ export default function ProductManagementPage() {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
-          <button
-            onClick={() => handleOpenModal()}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2"
-          >
+           <button
+             onClick={() => handleOpenModal()}
+             className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-lg transition flex items-center gap-2"
+           >
             <Plus className="w-5 h-5" />
             Nuevo Producto
           </button>
@@ -209,12 +209,12 @@ export default function ProductManagementPage() {
                         <p className="text-xs text-gray-500">{product.Description}</p>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-600 font-mono">{product.Barcode}</td>
-                    <td className="py-4 px-6 text-right text-sm font-semibold">
-                      S/. {parseFloat(product.CostPrice).toFixed(2)}
-                    </td>
-                    <td className="py-4 px-6 text-right text-sm font-semibold text-blue-600">
-                      S/. {parseFloat(product.SellingPrice).toFixed(2)}
+                     <td className="py-4 px-6 text-sm text-gray-600 font-mono">{product.Barcode}</td>
+                     <td className="py-4 px-6 text-right text-sm font-semibold">
+                       S/. {parseFloat(product.CostPrice).toFixed(2)}
+                     </td>
+                     <td className="py-4 px-6 text-right text-sm font-semibold text-blue-700">
+                       S/. {parseFloat(product.SellingPrice).toFixed(2)}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
@@ -225,9 +225,9 @@ export default function ProductManagementPage() {
                         {product.StockQuantity}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-center text-sm font-semibold text-green-600">
-                      {margin}%
-                    </td>
+                     <td className="py-4 px-6 text-center text-sm font-semibold text-green-700">
+                       {margin}%
+                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                         product.IsActive
@@ -239,16 +239,16 @@ export default function ProductManagementPage() {
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex gap-2 justify-center">
-                        <button
-                          onClick={() => handleOpenModal(product)}
-                          className="text-blue-600 hover:text-blue-700 p-2 rounded hover:bg-blue-50"
-                        >
+                         <button
+                           onClick={() => handleOpenModal(product)}
+                           className="text-blue-700 hover:text-blue-800 p-2 rounded hover:bg-blue-50"
+                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(product.ProductID)}
-                          className="text-red-600 hover:text-red-700 p-2 rounded hover:bg-red-50"
-                        >
+                         <button
+                           onClick={() => handleDelete(product.ProductID)}
+                           className="text-red-700 hover:text-red-800 p-2 rounded hover:bg-red-50"
+                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -400,13 +400,13 @@ export default function ProductManagementPage() {
               >
                 Cancelar
               </button>
-              <button
-                onClick={handleSubmit}
-                disabled={processing}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                {processing ? 'Guardando...' : 'Guardar'}
+               <button
+                  onClick={handleSubmit}
+                  disabled={processing}
+                  className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
+                >
+                 <Save className="w-4 h-4" />
+                 {processing ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </div>

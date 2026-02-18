@@ -102,14 +102,14 @@ export default function ReportsPage() {
         {/* Selector de rango de fechas */}
         <div className="flex gap-3">
           {['week', 'month', 'year'].map(range => (
-            <button
-              key={range}
-              onClick={() => setDateRange(range)}
-              className={`px-6 py-2 rounded-lg font-medium transition ${
-                dateRange === range
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
+             <button
+               key={range}
+               onClick={() => setDateRange(range)}
+               className={`px-6 py-2 rounded-lg font-medium transition ${
+                 dateRange === range
+                   ? 'bg-blue-700 text-white'
+                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+               }`}
             >
               {range === 'week' ? 'Esta Semana' : range === 'month' ? 'Este Mes' : 'Este Año'}
             </button>
@@ -122,9 +122,9 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Total Ventas</p>
-                <p className="text-2xl font-bold text-gray-900">
+             <div>
+                 <p className="text-gray-700 text-sm">Total Ventas</p>
+                 <p className="text-2xl font-bold text-gray-900">
                   S/. {parseFloat(dailyReport.TotalVentas || 0).toFixed(2)}
                 </p>
               </div>
@@ -134,9 +134,9 @@ export default function ReportsPage() {
 
           <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Transacciones</p>
-                <p className="text-2xl font-bold text-gray-900">
+             <div>
+                 <p className="text-gray-700 text-sm">Transacciones</p>
+                 <p className="text-2xl font-bold text-gray-900">
                   {dailyReport.CantidadTransacciones || 0}
                 </p>
               </div>
@@ -146,9 +146,9 @@ export default function ReportsPage() {
 
           <div className="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Promedio Venta</p>
-                <p className="text-2xl font-bold text-gray-900">
+             <div>
+                 <p className="text-gray-700 text-sm">Promedio Venta</p>
+                 <p className="text-2xl font-bold text-gray-900">
                   S/. {(dailyReport.CantidadTransacciones > 0
                     ? parseFloat(dailyReport.TotalVentas || 0) / dailyReport.CantidadTransacciones
                     : 0).toFixed(2)
@@ -161,9 +161,9 @@ export default function ReportsPage() {
 
           <div className="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Productos Vendidos</p>
-                <p className="text-2xl font-bold text-gray-900">
+             <div>
+                 <p className="text-gray-700 text-sm">Productos Vendidos</p>
+                 <p className="text-2xl font-bold text-gray-900">
                   {dailyReport.TotalItems || 0}
                 </p>
               </div>

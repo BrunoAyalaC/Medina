@@ -51,7 +51,7 @@ export default function Layout() {
           {sidebarOpen && (
             <div>
               <h2 className="font-bold text-lg">Minimarket</h2>
-              <p className="text-xs text-gray-400">PRO</p>
+              <p className="text-xs text-gray-300">PRO</p>
             </div>
           )}
           <button
@@ -83,14 +83,14 @@ export default function Layout() {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-700 transition"
             >
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+              <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center text-xs font-bold">
                 {user?.FullName?.charAt(0) || 'U'}
               </div>
               {sidebarOpen && (
                 <>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-sm font-medium truncate">{user?.FullName}</p>
-                    <p className="text-xs text-gray-400 truncate">{user?.RoleName}</p>
+                    <p className="text-xs text-gray-300 truncate">{user?.RoleName}</p>
                   </div>
                   <ChevronDown className="w-4 h-4 flex-shrink-0" />
                 </>
@@ -102,7 +102,7 @@ export default function Layout() {
               <div className="absolute bottom-full left-2 right-2 mb-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:bg-gray-700 rounded-lg transition text-sm"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-gray-700 rounded-lg transition text-sm"
                 >
                   <LogOut className="w-4 h-4" />
                   Cerrar Sesión

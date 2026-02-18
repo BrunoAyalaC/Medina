@@ -114,25 +114,25 @@ export default function PaymentModal({
 
         {/* Amount Input */}
         <div className="space-y-4 mb-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Monto a Pagar (S/.)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min={total}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder={total.toFixed(2)}
-              className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none"
-              style={{
-                focusBorderColor: color === 'green' ? '#10B981' : color === 'blue' ? '#3B82F6' : color === 'purple' ? '#8B5CF6' : '#F59E0B'
-              }}
-              disabled={paymentMethod === 'YAPE' || paymentMethod === 'PLIN'}
-            />
-            {amount && parseFloat(amount) > total && (
-              <p className="text-sm text-green-600 mt-2">
+           <div>
+             <label className="block text-sm font-semibold text-gray-900 mb-2">
+               Monto a Pagar (S/.)
+             </label>
+             <input
+               type="number"
+               step="0.01"
+               min={total}
+               value={amount}
+               onChange={(e) => setAmount(e.target.value)}
+               placeholder={total.toFixed(2)}
+               className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none"
+               style={{
+                 focusBorderColor: color === 'green' ? '#059669' : color === 'blue' ? '#1D4ED8' : color === 'purple' ? '#7C3AED' : '#D97706'
+               }}
+               disabled={paymentMethod === 'YAPE' || paymentMethod === 'PLIN'}
+             />
+             {amount && parseFloat(amount) > total && (
+               <p className="text-sm text-green-700 mt-2">
                 Cambio: S/. {(parseFloat(amount) - total).toFixed(2)}
               </p>
             )}
@@ -161,16 +161,16 @@ export default function PaymentModal({
           >
             Cancelar
           </button>
-          <button
-            onClick={handleConfirm}
-            disabled={loading || !amount || parseFloat(amount) < total}
-            className={`flex-1 text-white font-bold py-3 px-4 rounded-lg transition ${
-              color === 'green' ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-400' :
-              color === 'blue' ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400' :
-              color === 'purple' ? 'bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400' :
-              'bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400'
-            }`}
-          >
+           <button
+             onClick={handleConfirm}
+             disabled={loading || !amount || parseFloat(amount) < total}
+             className={`flex-1 text-white font-bold py-3 px-4 rounded-lg transition ${
+               color === 'green' ? 'bg-green-700 hover:bg-green-800 disabled:bg-gray-400' :
+               color === 'blue' ? 'bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400' :
+               color === 'purple' ? 'bg-purple-700 hover:bg-purple-800 disabled:bg-gray-400' :
+               'bg-orange-700 hover:bg-orange-800 disabled:bg-gray-400'
+             }`}
+           >
             {loading ? 'Procesando...' : 'Confirmar Pago'}
           </button>
         </div>
