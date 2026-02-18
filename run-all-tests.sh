@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # ============================================================================
-# TEST RUNNER - Ejecuta TODOS los tests (Smoke + Journey)
+# TEST RUNNER - Ejecuta TODOS los tests (Smoke + Journey + E2E)
 # Backend: Jest
-# Frontend: Vitest
+# Frontend: Vitest + Playwright
 # ============================================================================
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  🧪 TESTING SUITE - MINIMARKET SYSTEM                     ║"
-echo "║  Smoke Tests + Journey Tests                              ║"
-echo "║  Backend (Jest) + Frontend (Vitest)                       ║"
+echo "║  🧪 TESTING SUITE COMPLETO - MINIMARKET SYSTEM            ║"
+echo "║  SMOKE + JOURNEY + E2E TESTS                              ║"
+echo "║  Backend (Jest) + Frontend (Vitest + Playwright)          ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 

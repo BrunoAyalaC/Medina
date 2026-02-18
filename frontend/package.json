@@ -11,6 +11,13 @@
     "test:journey": "vitest run frontend/tests/journey.test.js",
     "test:all": "vitest run",
     "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:auth": "playwright test tests-e2e/auth.e2e.js",
+    "test:e2e:pos": "playwright test tests-e2e/pos.e2e.js",
+    "test:e2e:reports": "playwright test tests-e2e/reports.e2e.js",
+    "test:e2e:inventory": "playwright test tests-e2e/inventory.e2e.js",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
     "lint": "eslint src/",
     "type-check": "tsc --noEmit"
   },
@@ -27,6 +34,7 @@
     "zustand": "^4.4.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
