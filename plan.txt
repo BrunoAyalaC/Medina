@@ -1,0 +1,83 @@
+PLAN DE DESARROLLO: SISTEMA DE MINIMARKET INTERMEDIO PRO
+1. SEGURIDAD Y PERMISOS (RBAC)
+Roles de Usuario:
+
+Administrador: Control total, reportes financieros, gestión de usuarios, anulación de tickets y auditoría de inventario.
+
+Cajero: Operaciones de venta, apertura/cierre de caja y consulta de precios.
+
+Control de Acceso: Restricción de funciones críticas mediante validación de rol en sesión.
+
+2. GESTIÓN DE INVENTARIO Y KARDEX (AUDITORÍA)
+Registro de Productos: Código de barras, nombre, precio compra/venta, stock actual y stock mínimo.
+
+Control de Movimientos (Entradas/Salidas):
+
+Registro de Entrada: Formulario para ingresar mercadería nueva (quién recibe, fecha, hora, cantidad y proveedor).
+
+Registro de Salida: Motivo de salida (merma, vencimiento, pérdida) con responsable y marca de tiempo.
+
+Historial de Auditoría:
+
+Quién: Usuario que autorizó o realizó el movimiento.
+
+Cuándo: Fecha y hora exacta del registro (Timestamp).
+
+Por qué: Motivo del cambio en el stock (Compra, Venta, Ajuste, Devolución).
+
+Acciones: [Registrar Entrada], [Registrar Salida], [Ver Historial de Movimientos], [Soft Delete].
+
+3. CONTROL DE CAJA (ARQUEO FINANCIERO)
+Apertura de Caja: Declaración de monto inicial (fondo de sencillo).
+
+Movimientos de Turno: Registro de ingresos o salidas de efectivo manuales.
+
+Cierre de Caja: * Resumen de ventas por método de pago.
+
+Cálculo automático de diferencia (Esperado vs. Real).
+
+Estado de Caja: Bloqueo del POS si no existe una caja abierta para el turno actual.
+
+4. PUNTO DE VENTA (POS) DINÁMICO
+Gestión del Carrito: * Edición en Tiempo Real: Cambiar cantidades o eliminar productos si el cliente cambia de opinión antes de pagar.
+
+Reemplazo de Productos: Función para vaciar o sustituir items rápidamente.
+
+Buscador: Lectura de código de barras (autofocus) o búsqueda por nombre.
+
+Cálculo de Transacción:
+
+Paga con / Vuelto: Entrada numérica para calcular automáticamente cuánto devolver al cliente.
+
+Desglose de Subtotal, Impuestos y Total.
+
+5. MÉTODOS DE PAGO MULTIMODALES
+Efectivo: Integrado con el cálculo de vuelto.
+
+Tarjetas: Campo para ID de transacción o referencia del voucher.
+
+QR (Billeteras Digitales): Registro de número de operación para validación.
+
+Pagos Mixtos: Capacidad de dividir el total entre efectivo y medios digitales.
+
+6. HISTORIAL, REPORTES Y ANULACIONES
+Registro de Ventas: Listado con filtros por fecha, cajero y método de pago.
+
+Anulación de Ventas: * Solo perfil Administrador.
+
+Reversión automática de stock al inventario.
+
+Registro de "Quién anuló" y "A qué hora".
+
+Reportes: Ganancias netas, productos más vendidos y alertas de stock crítico.
+
+7. LÓGICA DE OPERACIONES (MÉTODOS TÉCNICOS)
+GET (Consulta): Listado de activos, historial de movimientos (Kardex) y reportes de caja.
+
+POST (Registro): Creación de ventas, ingresos de mercadería y aperturas de caja.
+
+PATCH (Edición/Soft Delete): * Stock Push: Actualización atómica de inventario al vender o recibir carga.
+
+Estado: Desactivación de productos y edición de datos maestros.
+
+Validación: Middleware para verificar permisos antes de permitir cualquier movimiento de stock manual.
