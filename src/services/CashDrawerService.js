@@ -6,10 +6,10 @@ export class CashDrawerService {
   async openCashDrawer(userId, montoInicial) {
     // Verificar si hay caja abierta del mismo usuario en el día
     const existingCash = await executeQuery(
-      `SELECT CashDrawerID FROM CashDrawer 
-       WHERE UserID = @userId AND State = 'ABIERTA' 
-       AND CAST(FechaApertura AS DATE) = CAST(GETDATE() AS DATE)`,
-      { userId }
+      `SELECT cash_drawer_id FROM cash_drawer 
+       WHERE user_id = ? AND state = 'ABIERTA' 
+       AND DATE(fecha_apertura) = DATE(CURRENT_TIMESTAMP)`,
+      [userId]
     );
 
     if (existingCash.recordset.length > 0) {
@@ -18,14 +18,16 @@ export class CashDrawerService {
 
     // Insertar nueva caja
     const result = await executeQuery(
-      `INSERT INTO CashDrawer (UserID, FechaApertura, MontoInicial, State)
-       VALUES (@userId, GETDATE(), @montoInicial, 'ABIERTA');
-       SELECT SCOPE_IDENTITY() AS CashDrawerID;`,
-      { userId, montoInicial }
+      `INSERT INTO cash_drawer (user_id, fecha_apertura, monto_inicial, state)
+       VALUES (?, CURRENT_TIMESTAMP, ?, 'ABIERTA')`,
+      [userId, montoInicial]
     );
 
+    // Obtener ID insertado
+    const idResult = await executeQuery('SELECT LAST_INSERT_ID() as cash_drawer_id');
+    
     return {
-      cashDrawerId: result.recordset[0].CashDrawerID,
+      cashDrawerId: idResult.recordset[0].cash_drawer_id,
       message: 'Caja abierta exitosamente'
     };
   }
@@ -33,10 +35,10 @@ export class CashDrawerService {
   // Obtener caja actual abierta del usuario
   async getCurrentOpenCash(userId) {
     const result = await executeQuery(
-      `SELECT * FROM CashDrawer 
-       WHERE UserID = @userId AND State = 'ABIERTA' 
-       AND CAST(FechaApertura AS DATE) = CAST(GETDATE() AS DATE)`,
-      { userId }
+      `SELECT * FROM cash_drawer 
+       WHERE user_id = ? AND state = 'ABIERTA' 
+       AND DATE(fecha_apertura) = DATE(CURRENT_TIMESTAMP)`,
+      [userId]
     );
 
     if (result.recordset.length === 0) {
@@ -50,8 +52,8 @@ export class CashDrawerService {
   async addMovement(cashDrawerId, tipoMovimiento, monto, motivo, userId) {
     // Validar que la caja existe y está abierta
     const cash = await executeQuery(
-      'SELECT * FROM CashDrawer WHERE CashDrawerID = @cashDrawerId AND State = @state',
-      { cashDrawerId, state: 'ABIERTA' }
+      'SELECT * FROM cash_drawer WHERE cash_drawer_id = ? AND state = ?',
+      [cashDrawerId, 'ABIERTA']
     );
 
     if (cash.recordset.length === 0) {
@@ -59,9 +61,9 @@ export class CashDrawerService {
     }
 
     if (tipoMovimiento === 'EGRESO') {
-      const totalActual = (cash.recordset[0].MontoEfectivo || 0) + 
-                         (cash.recordset[0].MontoTarjeta || 0) + 
-                         (cash.recordset[0].MontoQR || 0);
+      const totalActual = (cash.recordset[0].monto_efectivo || 0) + 
+                         (cash.recordset[0].monto_tarjeta || 0) + 
+                         (cash.recordset[0].monto_qr || 0);
       
       if (totalActual < monto) {
         throw new AppError(`Fondos insuficientes. Disponible: ${totalActual}`, 400);
@@ -70,14 +72,16 @@ export class CashDrawerService {
 
     // Insertar movimiento
     const result = await executeQuery(
-      `INSERT INTO CashMovements (CashDrawerID, TipoMovimiento, Monto, Motivo, UserID)
-       VALUES (@cashDrawerId, @tipoMovimiento, @monto, @motivo, @userId);
-       SELECT SCOPE_IDENTITY() AS CashMovementID;`,
-      { cashDrawerId, tipoMovimiento, monto, motivo, userId }
+      `INSERT INTO cash_movements (cash_drawer_id, tipo_movimiento, monto, motivo, user_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [cashDrawerId, tipoMovimiento, monto, motivo, userId]
     );
 
+    // Obtener ID insertado
+    const idResult = await executeQuery('SELECT LAST_INSERT_ID() as cash_movement_id');
+
     return {
-      movementId: result.recordset[0].CashMovementID,
+      movementId: idResult.recordset[0].cash_movement_id,
       message: 'Movimiento registrado'
     };
   }
@@ -88,10 +92,10 @@ export class CashDrawerService {
 
     // Obtener datos actuales de caja
     const cash = await executeQuery(
-      `SELECT cd.*, u.FullName FROM CashDrawer cd
-       INNER JOIN Users u ON cd.UserID = u.UserID
-       WHERE cd.CashDrawerID = @cashDrawerId`,
-      { cashDrawerId }
+      `SELECT cd.*, u.full_name FROM cash_drawer cd
+       INNER JOIN users u ON cd.user_id = u.user_id
+       WHERE cd.cash_drawer_id = ?`,
+      [cashDrawerId]
     );
 
     if (cash.recordset.length === 0) {
@@ -100,62 +104,54 @@ export class CashDrawerService {
 
     const cajaDatos = cash.recordset[0];
 
-    if (cajaDatos.State !== 'ABIERTA') {
+    if (cajaDatos.state !== 'ABIERTA') {
       throw new AppError('La caja ya está cerrada', 400);
     }
 
     // Obtener total de ventas del día
     const ventas = await executeQuery(
       `SELECT 
-        COALESCE(SUM(CASE WHEN pm.MetodoPago = 'EFECTIVO' THEN pm.Monto ELSE 0 END), 0) as TotalEfectivo,
-        COALESCE(SUM(CASE WHEN pm.MetodoPago IN ('YAPE', 'PLIN') THEN pm.Monto ELSE 0 END), 0) as TotalQR,
-        COALESCE(SUM(CASE WHEN pm.MetodoPago = 'TARJETA' THEN pm.Monto ELSE 0 END), 0) as TotalTarjeta,
-        COALESCE(SUM(s.Total), 0) as TotalVentas
-       FROM Sales s
-       LEFT JOIN PaymentMethods pm ON s.SaleID = pm.SaleID
-       WHERE s.CashDrawerID = @cashDrawerId AND s.State = 'COMPLETADA'`,
-      { cashDrawerId }
+        COALESCE(SUM(CASE WHEN pm.metodo_pago = 'EFECTIVO' THEN pm.monto ELSE 0 END), 0) as total_efectivo,
+        COALESCE(SUM(CASE WHEN pm.metodo_pago IN ('YAPE', 'PLIN') THEN pm.monto ELSE 0 END), 0) as total_qr,
+        COALESCE(SUM(CASE WHEN pm.metodo_pago = 'TARJETA' THEN pm.monto ELSE 0 END), 0) as total_tarjeta,
+        COALESCE(SUM(s.total), 0) as total_ventas
+       FROM sales s
+       LEFT JOIN payment_methods pm ON s.sale_id = pm.sale_id
+       WHERE s.cash_drawer_id = ? AND s.state = 'COMPLETADA'`,
+      [cashDrawerId]
     );
 
     const ventasDatos = ventas.recordset[0];
 
     // Calcular totales esperados
-    const montoEsperado = cajaDatos.MontoInicial + ventasDatos.TotalVentas;
+    const montoEsperado = cajaDatos.monto_inicial + ventasDatos.total_ventas;
     const montoReal = montoEfectivo + montoTarjeta + montoQR;
     const diferencia = montoReal - montoEsperado;
 
     try {
       // Cerrar caja
       await executeQuery(
-        `UPDATE CashDrawer 
-         SET State = 'CERRADA',
-             FechaCierre = GETDATE(),
-             MontoCierre = @montoReal,
-             MontoEfectivo = @montoEfectivo,
-             MontoTarjeta = @montoTarjeta,
-             MontoQR = @montoQR,
-             Diferencia = @diferencia,
-             Observaciones = @observaciones
-         WHERE CashDrawerID = @cashDrawerId`,
-        { 
-          cashDrawerId, 
-          montoEfectivo, 
-          montoTarjeta, 
-          montoQR,
-          montoReal, 
-          diferencia,
-          observaciones 
-        }
+        `UPDATE cash_drawer 
+         SET state = 'CERRADA',
+             fecha_cierre = CURRENT_TIMESTAMP,
+             monto_cierre = ?,
+             monto_efectivo = ?,
+             monto_tarjeta = ?,
+             monto_qr = ?,
+             diferencia = ?,
+             observaciones = ?
+         WHERE cash_drawer_id = ?`,
+        [montoReal, montoEfectivo, montoTarjeta, montoQR, diferencia, observaciones, cashDrawerId]
       );
 
       return {
         cashDrawerId,
-        montoInicial: cajaDatos.MontoInicial,
-        totalVentas: ventasDatos.TotalVentas,
+        montoInicial: cajaDatos.monto_inicial,
+        totalVentas: ventasDatos.total_ventas,
         detalleVentas: {
-          efectivo: ventasDatos.TotalEfectivo,
-          qr: ventasDatos.TotalQR,
-          tarjeta: ventasDatos.TotalTarjeta
+          efectivo: ventasDatos.total_efectivo,
+          qr: ventasDatos.total_qr,
+          tarjeta: ventasDatos.total_tarjeta
         },
         montoEsperado,
         montoReal,
@@ -171,51 +167,52 @@ export class CashDrawerService {
   // Obtener historial de cajas
   async getCashDrawerHistory(filters = {}, page = 1, pageSize = 50) {
     let whereClause = 'WHERE 1=1';
-    const params = { pageSize, offset: (page - 1) * pageSize };
+    const params = [];
 
     if (filters.userId) {
-      whereClause += ' AND cd.UserID = @userId';
-      params.userId = filters.userId;
+      whereClause += ' AND cd.user_id = ?';
+      params.push(filters.userId);
     }
 
     if (filters.state) {
-      whereClause += ' AND cd.State = @state';
-      params.state = filters.state;
+      whereClause += ' AND cd.state = ?';
+      params.push(filters.state);
     }
 
     if (filters.fechaDesde) {
-      whereClause += ' AND CAST(cd.FechaApertura AS DATE) >= @fechaDesde';
-      params.fechaDesde = filters.fechaDesde;
+      whereClause += ' AND DATE(cd.fecha_apertura) >= ?';
+      params.push(filters.fechaDesde);
     }
 
     // Obtener total
     const countResult = await executeQuery(
-      `SELECT COUNT(*) as total FROM CashDrawer cd ${whereClause}`,
+      `SELECT COUNT(*) as total FROM cash_drawer cd ${whereClause}`,
       params
     );
     const total = countResult.recordset[0].total;
 
     // Obtener datos
+    const dataParams = [...params, (page - 1) * pageSize, pageSize];
     const result = await executeQuery(
       `SELECT 
-        cd.CashDrawerID,
-        u.FullName as Cajero,
-        cd.FechaApertura,
-        cd.MontoInicial,
-        cd.MontoEfectivo,
-        cd.MontoTarjeta,
-        cd.MontoQR,
-        (cd.MontoEfectivo + cd.MontoTarjeta + cd.MontoQR) as MontoCierre,
-        cd.State,
-        cd.FechaCierre,
-        cd.Diferencia,
-        cd.Observaciones
-       FROM CashDrawer cd
-       INNER JOIN Users u ON cd.UserID = u.UserID
+        cd.cash_drawer_id,
+        u.full_name as cajero,
+        cd.fecha_apertura,
+        cd.monto_inicial,
+        cd.monto_efectivo,
+        cd.monto_tarjeta,
+        cd.monto_qr,
+        (cd.monto_efectivo + cd.monto_tarjeta + cd.monto_qr) as monto_cierre,
+        cd.state,
+        cd.fecha_cierre,
+        cd.diferencia,
+        cd.observaciones
+       FROM cash_drawer cd
+       INNER JOIN users u ON cd.user_id = u.user_id
        ${whereClause}
-       ORDER BY cd.FechaApertura DESC
-       OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`,
-      params
+       ORDER BY cd.fecha_apertura DESC
+       LIMIT ? OFFSET ?`,
+      dataParams
     );
 
     return {
@@ -233,21 +230,21 @@ export class CashDrawerService {
   async getCashSummary(cashDrawerId) {
     const result = await executeQuery(
       `SELECT 
-        cd.CashDrawerID,
-        u.FullName as Cajero,
-        cd.FechaApertura,
-        cd.MontoInicial,
-        COALESCE(SUM(CASE WHEN cm.TipoMovimiento = 'INGRESO' THEN cm.Monto ELSE 0 END), 0) as TotalIngresos,
-        COALESCE(SUM(CASE WHEN cm.TipoMovimiento = 'EGRESO' THEN cm.Monto ELSE 0 END), 0) as TotalEgresos,
-        COALESCE(SUM(s.Total), 0) as TotalVentas,
-        cd.State
-       FROM CashDrawer cd
-       INNER JOIN Users u ON cd.UserID = u.UserID
-       LEFT JOIN CashMovements cm ON cd.CashDrawerID = cm.CashDrawerID
-       LEFT JOIN Sales s ON cd.CashDrawerID = s.CashDrawerID AND s.State = 'COMPLETADA'
-       WHERE cd.CashDrawerID = @cashDrawerId
-       GROUP BY cd.CashDrawerID, u.FullName, cd.FechaApertura, cd.MontoInicial, cd.State`,
-      { cashDrawerId }
+        cd.cash_drawer_id,
+        u.full_name as cajero,
+        cd.fecha_apertura,
+        cd.monto_inicial,
+        COALESCE(SUM(CASE WHEN cm.tipo_movimiento = 'INGRESO' THEN cm.monto ELSE 0 END), 0) as total_ingresos,
+        COALESCE(SUM(CASE WHEN cm.tipo_movimiento = 'EGRESO' THEN cm.monto ELSE 0 END), 0) as total_egresos,
+        COALESCE(SUM(s.total), 0) as total_ventas,
+        cd.state
+       FROM cash_drawer cd
+       INNER JOIN users u ON cd.user_id = u.user_id
+       LEFT JOIN cash_movements cm ON cd.cash_drawer_id = cm.cash_drawer_id
+       LEFT JOIN sales s ON cd.cash_drawer_id = s.cash_drawer_id AND s.state = 'COMPLETADA'
+       WHERE cd.cash_drawer_id = ?
+       GROUP BY cd.cash_drawer_id, u.full_name, cd.fecha_apertura, cd.monto_inicial, cd.state`,
+      [cashDrawerId]
     );
 
     if (result.recordset.length === 0) {

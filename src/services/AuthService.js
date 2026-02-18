@@ -10,8 +10,8 @@ export class AuthService {
 
     // Validar que no exista usuario
     const existingUser = await executeQuery(
-      'SELECT UserID FROM Users WHERE Username = @username OR Email = @email',
-      { username, email }
+      'SELECT user_id FROM users WHERE username = ? OR email = ?',
+      [username, email]
     );
 
     if (existingUser.recordset.length > 0) {
@@ -23,19 +23,14 @@ export class AuthService {
 
     // Insertar usuario
     const result = await executeQuery(
-      `INSERT INTO Users (Username, Email, PasswordHash, RoleID, FullName, CreatedAt)
-       VALUES (@username, @email, @passwordHash, @roleId, @fullName, GETDATE());
-       SELECT SCOPE_IDENTITY() AS UserID;`,
-      { 
-        username, 
-        email, 
-        passwordHash: hashedPassword, 
-        roleId: roleId || 2, // Default: Cajero
-        fullName 
-      }
+      `INSERT INTO users (username, email, password_hash, role_id, full_name, created_at)
+       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [username, email, hashedPassword, roleId || 2, fullName]
     );
 
-    const userId = result.recordset[0].UserID;
+    // Obtener el ID insertado
+    const idResult = await executeQuery('SELECT LAST_INSERT_ID() as user_id');
+    const userId = idResult.recordset[0].user_id;
 
     // Obtener datos completos del usuario
     const user = await this.getUserById(userId);
@@ -46,10 +41,10 @@ export class AuthService {
   async loginUser(username, password) {
     // Buscar usuario
     const result = await executeQuery(
-      `SELECT u.*, r.RoleName FROM Users u
-       INNER JOIN Roles r ON u.RoleID = r.RoleID
-       WHERE u.Username = @username AND u.IsActive = 1`,
-      { username }
+      `SELECT u.*, r.role_name FROM users u
+       INNER JOIN roles r ON u.role_id = r.role_id
+       WHERE u.username = ? AND u.is_active = 1`,
+      [username]
     );
 
     if (result.recordset.length === 0) {
@@ -59,15 +54,15 @@ export class AuthService {
     const user = result.recordset[0];
 
     // Validar contraseña
-    const isPasswordValid = await bcryptjs.compare(password, user.PasswordHash);
+    const isPasswordValid = await bcryptjs.compare(password, user.password_hash);
     if (!isPasswordValid) {
       throw new AppError('Usuario o contraseña incorrectos', 401);
     }
 
     // Actualizar último login
     await executeQuery(
-      'UPDATE Users SET LastLogin = GETDATE() WHERE UserID = @userId',
-      { userId: user.UserID }
+      'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?',
+      [user.user_id]
     );
 
     // Generar tokens
@@ -75,7 +70,7 @@ export class AuthService {
     const refreshToken = generateRefreshToken(user);
 
     // Preparar respuesta (sin contraseña)
-    delete user.PasswordHash;
+    delete user.password_hash;
 
     return {
       user,
@@ -86,10 +81,10 @@ export class AuthService {
 
   async getUserById(userId) {
     const result = await executeQuery(
-      `SELECT u.*, r.RoleName FROM Users u
-       INNER JOIN Roles r ON u.RoleID = r.RoleID
-       WHERE u.UserID = @userId`,
-      { userId }
+      `SELECT u.*, r.role_name FROM users u
+       INNER JOIN roles r ON u.role_id = r.role_id
+       WHERE u.user_id = ?`,
+      [userId]
     );
 
     if (result.recordset.length === 0) {
@@ -97,7 +92,7 @@ export class AuthService {
     }
 
     const user = result.recordset[0];
-    delete user.PasswordHash;
+    delete user.password_hash;
     return user;
   }
 
@@ -123,8 +118,8 @@ export class AuthService {
 
   async changePassword(userId, currentPassword, newPassword) {
     const result = await executeQuery(
-      'SELECT PasswordHash FROM Users WHERE UserID = @userId',
-      { userId }
+      'SELECT password_hash FROM users WHERE user_id = ?',
+      [userId]
     );
 
     if (result.recordset.length === 0) {
@@ -134,7 +129,7 @@ export class AuthService {
     const user = result.recordset[0];
 
     // Validar contraseña actual
-    const isPasswordValid = await bcryptjs.compare(currentPassword, user.PasswordHash);
+    const isPasswordValid = await bcryptjs.compare(currentPassword, user.password_hash);
     if (!isPasswordValid) {
       throw new AppError('Contraseña actual incorrecta', 401);
     }
@@ -144,8 +139,8 @@ export class AuthService {
 
     // Actualizar contraseña
     await executeQuery(
-      'UPDATE Users SET PasswordHash = @passwordHash WHERE UserID = @userId',
-      { passwordHash: hashedPassword, userId }
+      'UPDATE users SET password_hash = ? WHERE user_id = ?',
+      [hashedPassword, userId]
     );
 
     return { message: 'Contraseña actualizada correctamente' };

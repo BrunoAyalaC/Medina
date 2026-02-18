@@ -4,54 +4,56 @@ import { AppError } from '../middleware/errorHandler.js';
 export class InventoryService {
   // Obtener inventario actual
   async getCurrentInventory(filters = {}, page = 1, pageSize = 50) {
-    let whereClause = 'WHERE p.IsActive = 1';
-    const params = { pageSize, offset: (page - 1) * pageSize };
+    let whereClause = 'WHERE p.is_active = 1';
+    const params = [];
 
     if (filters.categoryId) {
-      whereClause += ' AND p.CategoryID = @categoryId';
-      params.categoryId = filters.categoryId;
+      whereClause += ' AND p.category_id = ?';
+      params.push(filters.categoryId);
     }
 
     if (filters.searchTerm) {
-      whereClause += ' AND (p.ProductName LIKE @search OR p.Barcode LIKE @search)';
-      params.search = `%${filters.searchTerm}%`;
+      whereClause += ' AND (p.product_name LIKE ? OR p.barcode LIKE ?)';
+      const searchTerm = `%${filters.searchTerm}%`;
+      params.push(searchTerm, searchTerm);
     }
 
     if (filters.stockCritico) {
-      whereClause += ' AND p.StockActual <= p.StockMinimo';
+      whereClause += ' AND p.stock_actual <= p.stock_minimo';
     }
 
     // Obtener total de registros
     const countResult = await executeQuery(
-      `SELECT COUNT(*) as total FROM Products p ${whereClause}`,
+      `SELECT COUNT(*) as total FROM products p ${whereClause}`,
       params
     );
     const total = countResult.recordset[0].total;
 
     // Obtener datos paginados
+    const pageParams = [...params, (page - 1) * pageSize, pageSize];
     const result = await executeQuery(
       `SELECT 
-        p.ProductID,
-        p.Barcode,
-        p.ProductName,
-        c.CategoryName,
-        p.CostPrice,
-        p.SellingPrice,
-        p.StockActual,
-        p.StockMinimo,
+        p.product_id,
+        p.barcode,
+        p.product_name,
+        c.category_name,
+        p.cost_price,
+        p.selling_price,
+        p.stock_actual,
+        p.stock_minimo,
         CASE 
-          WHEN p.StockActual <= p.StockMinimo THEN 'CRÍTICO'
-          WHEN p.StockActual <= (p.StockMinimo * 1.5) THEN 'BAJO'
+          WHEN p.stock_actual <= p.stock_minimo THEN 'CRÍTICO'
+          WHEN p.stock_actual <= (p.stock_minimo * 1.5) THEN 'BAJO'
           ELSE 'NORMAL'
-        END AS StockStatus,
-        p.CreatedAt,
-        p.UpdatedAt
-      FROM Products p
-      INNER JOIN Categories c ON p.CategoryID = c.CategoryID
+        END AS stock_status,
+        p.created_at,
+        p.updated_at
+      FROM products p
+      INNER JOIN categories c ON p.category_id = c.category_id
       ${whereClause}
-      ORDER BY p.ProductName ASC
-      OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`,
-      params
+      ORDER BY p.product_name ASC
+      LIMIT ? OFFSET ?`,
+      pageParams
     );
 
     return {
@@ -71,8 +73,8 @@ export class InventoryService {
 
     // Validar que el producto exista
     const product = await executeQuery(
-      'SELECT * FROM Products WHERE ProductID = @productId',
-      { productId }
+      'SELECT * FROM products WHERE product_id = ?',
+      [productId]
     );
 
     if (product.recordset.length === 0) {
@@ -80,48 +82,36 @@ export class InventoryService {
     }
 
     const prod = product.recordset[0];
-    const stockAnterior = prod.StockActual;
+    const stockAnterior = prod.stock_actual;
     const stockActual = stockAnterior + cantidad;
 
     try {
-      // Iniciar transacción
-      await executeQuery('BEGIN TRANSACTION');
-
       // Actualizar stock del producto
       await executeQuery(
-        `UPDATE Products 
-         SET StockActual = @stockActual, UpdatedAt = GETDATE()
-         WHERE ProductID = @productId`,
-        { productId, stockActual }
+        `UPDATE products 
+         SET stock_actual = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE product_id = ?`,
+        [stockActual, productId]
       );
 
-      // Registrar en kardex
+      // Registrar en kardex - Nota: Ajusta según el esquema real de la tabla kardex
       const result = await executeQuery(
-        `INSERT INTO Kardex 
-         (ProductID, TipoMovimiento, Cantidad, MotivoCambio, StockAnterior, StockActual, UserID, Proveedor, Observaciones)
-         VALUES (@productId, 'ENTRADA', @cantidad, 'Compra', @stockAnterior, @stockActual, @userId, @proveedor, @observaciones);
-         SELECT SCOPE_IDENTITY() AS KardexID;`,
-        { 
-          productId, 
-          cantidad, 
-          stockAnterior, 
-          stockActual, 
-          userId, 
-          proveedor,
-          observaciones 
-        }
+        `INSERT INTO kardex 
+         (product_id, tipo_movimiento, cantidad, motivo_cambio, stock_anterior, stock_actual, user_id, proveedor, observaciones)
+         VALUES (?, 'ENTRADA', ?, 'Compra', ?, ?, ?, ?, ?)`,
+        [productId, cantidad, stockAnterior, stockActual, userId, proveedor, observaciones]
       );
 
-      // Commit de la transacción
-      await executeQuery('COMMIT TRANSACTION');
+      // Obtener ID insertado
+      const idResult = await executeQuery('SELECT LAST_INSERT_ID() as kardex_id');
+      const kardexId = idResult.recordset[0].kardex_id;
 
       return {
-        kardexId: result.recordset[0].KardexID,
+        kardexId,
         productId,
         mensaje: 'Entrada registrada exitosamente'
       };
     } catch (error) {
-      await executeQuery('ROLLBACK TRANSACTION');
       throw error;
     }
   }
@@ -132,8 +122,8 @@ export class InventoryService {
 
     // Validar que el producto exista
     const product = await executeQuery(
-      'SELECT * FROM Products WHERE ProductID = @productId',
-      { productId }
+      'SELECT * FROM products WHERE product_id = ?',
+      [productId]
     );
 
     if (product.recordset.length === 0) {
@@ -141,7 +131,7 @@ export class InventoryService {
     }
 
     const prod = product.recordset[0];
-    const stockAnterior = prod.StockActual;
+    const stockAnterior = prod.stock_actual;
 
     if (stockAnterior < cantidad) {
       throw new AppError(`Stock insuficiente. Disponible: ${stockAnterior}`, 400);
@@ -150,45 +140,32 @@ export class InventoryService {
     const stockActual = stockAnterior - cantidad;
 
     try {
-      // Iniciar transacción
-      await executeQuery('BEGIN TRANSACTION');
-
       // Actualizar stock del producto
       await executeQuery(
-        `UPDATE Products 
-         SET StockActual = @stockActual, UpdatedAt = GETDATE()
-         WHERE ProductID = @productId`,
-        { productId, stockActual }
+        `UPDATE products 
+         SET stock_actual = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE product_id = ?`,
+        [stockActual, productId]
       );
 
       // Registrar en kardex
       const result = await executeQuery(
-        `INSERT INTO Kardex 
-         (ProductID, TipoMovimiento, Cantidad, MotivoCambio, StockAnterior, StockActual, UserID, Responsable, Observaciones)
-         VALUES (@productId, 'SALIDA', @cantidad, @motivo, @stockAnterior, @stockActual, @userId, @responsable, @observaciones);
-         SELECT SCOPE_IDENTITY() AS KardexID;`,
-        { 
-          productId, 
-          cantidad, 
-          stockAnterior, 
-          stockActual, 
-          userId,
-          motivo,
-          responsable,
-          observaciones 
-        }
+        `INSERT INTO kardex 
+         (product_id, tipo_movimiento, cantidad, motivo_cambio, stock_anterior, stock_actual, user_id, responsable, observaciones)
+         VALUES (?, 'SALIDA', ?, ?, ?, ?, ?, ?, ?)`,
+        [productId, cantidad, motivo, stockAnterior, stockActual, userId, responsable, observaciones]
       );
 
-      // Commit de la transacción
-      await executeQuery('COMMIT TRANSACTION');
+      // Obtener ID insertado
+      const idResult = await executeQuery('SELECT LAST_INSERT_ID() as kardex_id');
+      const kardexId = idResult.recordset[0].kardex_id;
 
       return {
-        kardexId: result.recordset[0].KardexID,
+        kardexId,
         productId,
         mensaje: 'Salida registrada exitosamente'
       };
     } catch (error) {
-      await executeQuery('ROLLBACK TRANSACTION');
       throw error;
     }
   }
@@ -196,59 +173,60 @@ export class InventoryService {
   // Obtener historial de movimientos (kardex)
   async getKardexHistory(filters = {}, page = 1, pageSize = 50) {
     let whereClause = 'WHERE 1=1';
-    const params = { pageSize, offset: (page - 1) * pageSize };
+    const params = [];
 
     if (filters.productId) {
-      whereClause += ' AND k.ProductID = @productId';
-      params.productId = filters.productId;
+      whereClause += ' AND k.product_id = ?';
+      params.push(filters.productId);
     }
 
     if (filters.tipoMovimiento) {
-      whereClause += ' AND k.TipoMovimiento = @tipoMovimiento';
-      params.tipoMovimiento = filters.tipoMovimiento;
+      whereClause += ' AND k.tipo_movimiento = ?';
+      params.push(filters.tipoMovimiento);
     }
 
     if (filters.fechaDesde) {
-      whereClause += ' AND k.CreatedAt >= @fechaDesde';
-      params.fechaDesde = filters.fechaDesde;
+      whereClause += ' AND k.created_at >= ?';
+      params.push(filters.fechaDesde);
     }
 
     if (filters.fechaHasta) {
-      whereClause += ' AND k.CreatedAt <= @fechaHasta';
-      params.fechaHasta = filters.fechaHasta;
+      whereClause += ' AND k.created_at <= ?';
+      params.push(filters.fechaHasta);
     }
 
     // Obtener total
     const countResult = await executeQuery(
-      `SELECT COUNT(*) as total FROM Kardex k ${whereClause}`,
+      `SELECT COUNT(*) as total FROM kardex k ${whereClause}`,
       params
     );
     const total = countResult.recordset[0].total;
 
     // Obtener datos
+    const dataParams = [...params, (page - 1) * pageSize, pageSize];
     const result = await executeQuery(
       `SELECT 
-        k.KardexID,
-        k.ProductID,
-        p.ProductName,
-        p.Barcode,
-        k.TipoMovimiento,
-        k.Cantidad,
-        k.MotivoCambio,
-        k.StockAnterior,
-        k.StockActual,
-        u.FullName as Usuario,
-        k.Proveedor,
-        k.Responsable,
-        k.CreatedAt,
-        k.Observaciones
-      FROM Kardex k
-      INNER JOIN Products p ON k.ProductID = p.ProductID
-      INNER JOIN Users u ON k.UserID = u.UserID
+        k.kardex_id,
+        k.product_id,
+        p.product_name,
+        p.barcode,
+        k.tipo_movimiento,
+        k.cantidad,
+        k.motivo_cambio,
+        k.stock_anterior,
+        k.stock_actual,
+        u.full_name as usuario,
+        k.proveedor,
+        k.responsable,
+        k.created_at,
+        k.observaciones
+      FROM kardex k
+      INNER JOIN products p ON k.product_id = p.product_id
+      INNER JOIN users u ON k.user_id = u.user_id
       ${whereClause}
-      ORDER BY k.CreatedAt DESC
-      OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`,
-      params
+      ORDER BY k.created_at DESC
+      LIMIT ? OFFSET ?`,
+      dataParams
     );
 
     return {
@@ -266,17 +244,17 @@ export class InventoryService {
   async getStockCritico() {
     const result = await executeQuery(
       `SELECT 
-        p.ProductID,
-        p.Barcode,
-        p.ProductName,
-        c.CategoryName,
-        p.StockActual,
-        p.StockMinimo,
-        (p.StockMinimo - p.StockActual) as FaltanUnidades
-      FROM Products p
-      INNER JOIN Categories c ON p.CategoryID = c.CategoryID
-      WHERE p.StockActual <= p.StockMinimo AND p.IsActive = 1
-      ORDER BY (p.StockMinimo - p.StockActual) DESC`
+        p.product_id,
+        p.barcode,
+        p.product_name,
+        c.category_name,
+        p.stock_actual,
+        p.stock_minimo,
+        (p.stock_minimo - p.stock_actual) as faltan_unidades
+      FROM products p
+      INNER JOIN categories c ON p.category_id = c.category_id
+      WHERE p.stock_actual <= p.stock_minimo AND p.is_active = 1
+      ORDER BY (p.stock_minimo - p.stock_actual) DESC`
     );
 
     return result.recordset;
@@ -286,12 +264,12 @@ export class InventoryService {
   async getInventoryValue() {
     const result = await executeQuery(
       `SELECT 
-        SUM(p.StockActual * p.CostPrice) as CostoTotal,
-        SUM(p.StockActual * p.SellingPrice) as ValorVenta,
-        COUNT(*) as TotalProductos,
-        SUM(p.StockActual) as TotalUnidades
-      FROM Products p
-      WHERE p.IsActive = 1`
+        SUM(p.stock_actual * p.cost_price) as costo_total,
+        SUM(p.stock_actual * p.selling_price) as valor_venta,
+        COUNT(*) as total_productos,
+        SUM(p.stock_actual) as total_unidades
+      FROM products p
+      WHERE p.is_active = 1`
     );
 
     return result.recordset[0];
