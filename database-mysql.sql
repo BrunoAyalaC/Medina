@@ -57,6 +57,45 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 -- ============================================================================
+-- 3.5. TABLA DE UNIDADES DE MEDIDA (UOM - Unit of Measure)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS units (
+    unit_id INT PRIMARY KEY AUTO_INCREMENT,
+    unit_code VARCHAR(20) NOT NULL UNIQUE,
+    unit_name VARCHAR(100) NOT NULL,
+    description VARCHAR(255),
+    unit_type VARCHAR(30) NOT NULL, -- 'QUANTITY', 'WEIGHT', 'VOLUME'
+    conversion_factor DECIMAL(10, 4) DEFAULT 1, -- Para conversiones (ej: 1 docena = 12 unidades)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+CREATE INDEX IX_units_code ON units(unit_code);
+
+-- Insertar unidades de medida estándar
+INSERT INTO units (unit_code, unit_name, description, unit_type, conversion_factor) VALUES
+-- Cantidad
+('UND', 'Unidad', 'Unidad individual', 'QUANTITY', 1),
+('DOC', 'Docena', 'Doce unidades', 'QUANTITY', 12),
+('PAK', 'Pack', 'Paquete múltiple', 'QUANTITY', 6),
+('SEX', 'Six Pack', 'Seis unidades', 'QUANTITY', 6),
+('CJA', 'Caja', 'Caja estándar', 'QUANTITY', 24),
+
+-- Peso
+('KG', 'Kilogramo', 'Unidad de peso 1000g', 'WEIGHT', 1000),
+('G', 'Gramo', 'Unidad de peso', 'WEIGHT', 1),
+('LB', 'Libra', 'Libra (453.6g)', 'WEIGHT', 453.6),
+('OZ', 'Onza', 'Onza (28.35g)', 'WEIGHT', 28.35),
+('T', 'Tonelada', 'Tonelada métrica', 'WEIGHT', 1000000),
+
+-- Volumen
+('L', 'Litro', 'Unidad de volumen 1000ml', 'VOLUME', 1000),
+('ML', 'Mililitro', 'Unidad de volumen', 'VOLUME', 1),
+('GAL', 'Galón', 'Galón (3.785L)', 'VOLUME', 3785),
+('PT', 'Pinta', 'Pinta (473.2ml)', 'VOLUME', 473.2),
+('CUP', 'Taza', 'Taza (236.6ml)', 'VOLUME', 236.6);
+
+-- ============================================================================
 -- 4. TABLA DE PRODUCTOS
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS products (
@@ -64,18 +103,23 @@ CREATE TABLE IF NOT EXISTS products (
     barcode VARCHAR(50) NOT NULL UNIQUE,
     product_name VARCHAR(150) NOT NULL,
     category_id INT NOT NULL,
+    unit_id INT NOT NULL DEFAULT 1, -- Referencia a tabla units (por defecto 'UND')
     cost_price DECIMAL(10, 2) NOT NULL,
     selling_price DECIMAL(10, 2) NOT NULL,
     stock_actual INT NOT NULL DEFAULT 0,
     stock_minimo INT NOT NULL DEFAULT 5,
+    stock_maximo INT NOT NULL DEFAULT 999,
+    quantity_per_unit INT NOT NULL DEFAULT 1, -- Cantidad de unidades base por paquete (ej: 6 latas en un six-pack)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (category_id) REFERENCES categories(category_id)
+    FOREIGN KEY (category_id) REFERENCES categories(category_id),
+    FOREIGN KEY (unit_id) REFERENCES units(unit_id)
 );
 
 CREATE INDEX IX_products_barcode ON products(barcode);
 CREATE INDEX IX_products_category_id ON products(category_id);
+CREATE INDEX IX_products_unit_id ON products(unit_id);
 
 -- ============================================================================
 -- 5. TABLA DE KARDEX (HISTORIAL DE MOVIMIENTOS)

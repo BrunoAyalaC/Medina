@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { getPool, closePool } from './config/database.js';
 import authRoutes from './routes/auth.routes.js';
 import productRoutes from './routes/product.routes.js';
+import unitRoutes from './routes/unit.routes.js';
 import salesRoutes from './routes/sales.routes.js';
 import cashDrawerRoutes from './routes/cashDrawer.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
@@ -49,6 +50,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/units', unitRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/cash-drawer', cashDrawerRoutes);
 app.use('/api/inventory', inventoryRoutes);
