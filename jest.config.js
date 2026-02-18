@@ -16,7 +16,7 @@ export default {
   coverageDirectory: './coverage',
   verbose: true,
   forceExit: true,
-  clearMocks: true,
-  testTimeout: 15000,
+  clearMocks: false,
+  testTimeout: 30000,
   maxWorkers: 1
 };

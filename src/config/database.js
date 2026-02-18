@@ -114,20 +114,47 @@ export const closePool = async () => {
   }
 };
 
+// Convertir query de parámetros nominales (@name) a posicionales (?)
+// para compatibilidad con ODBC
+const convertQueryForODBC = (query, params) => {
+  let convertedQuery = query;
+  const paramValues = [];
+  
+  // Encontrar todos los parámetros nominales en la query
+  const paramPattern = /@(\w+)/g;
+  let match;
+  
+  while ((match = paramPattern.exec(query)) !== null) {
+    const paramName = match[1];
+    if (params[paramName] !== undefined) {
+      paramValues.push(params[paramName]);
+    }
+  }
+  
+  // Reemplazar @name con ? en orden
+  convertedQuery = query.replace(/@\w+/g, '?');
+  
+  return { query: convertedQuery, params: paramValues };
+};
+
 export const executeQuery = async (query, params = {}) => {
   try {
     const connPool = await getPool();
     const request = connPool.request();
 
-    // Agregar parámetros si existen (solo para mssql, ODBC no soporta)
-    if (!useOdbc) {
+    if (useOdbc) {
+      // Para ODBC: convertir parámetros nominales a posicionales
+      const { query: convertedQuery, params: convertedParams } = convertQueryForODBC(query, params);
+      const result = await connPool._odbcConnection.query(convertedQuery, convertedParams);
+      return { recordset: result, rowsAffected: [result?.length || 0] };
+    } else {
+      // Para mssql: usar parámetros nominales
       for (const [key, value] of Object.entries(params)) {
         request.input(key, value);
       }
+      const result = await request.query(query);
+      return result;
     }
-
-    const result = await request.query(query);
-    return result;
   } catch (error) {
     console.error('Error ejecutando query:', error.message);
     // Resetear pool para reintentar

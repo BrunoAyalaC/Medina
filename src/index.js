@@ -76,7 +76,8 @@ app.use(errorHandler);
 // INICIAR SERVIDOR
 // ============================================================================
 
-const server = app.listen(PORT, async () => {
+// En modo test, no iniciar el servidor automáticamente
+const server = process.env.NODE_ENV === 'test' ? null : app.listen(PORT, async () => {
   try {
     await getPool();
     console.log(`
@@ -101,10 +102,14 @@ const server = app.listen(PORT, async () => {
 process.on('SIGINT', async () => {
   console.log('\n✓ Cerrando aplicación...');
   await closePool();
-  server.close(() => {
-    console.log('✓ Servidor cerrado');
+  if (server) {
+    server.close(() => {
+      console.log('✓ Servidor cerrado');
+      process.exit(0);
+    });
+  } else {
     process.exit(0);
-  });
+  }
 });
 
 export default app;
