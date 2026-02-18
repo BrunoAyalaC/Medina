@@ -40,7 +40,7 @@ async function initializeDatabase() {
     connection = await mysql.createConnection(dbConfig);
     
      // Leer archivo SQL
-     const sqlFilePath = path.join(__dirname, 'database-mysql.sql');
+      const sqlFilePath = path.join(__dirname, '..', 'database-mysql.sql');
      let sqlScript = fs.readFileSync(sqlFilePath, 'utf-8');
      
      // Remover comentarios de una sola línea (--) y multibloque (/* */)
@@ -86,21 +86,21 @@ async function initializeDatabase() {
       {
         username: 'admin',
         email: 'admin@minimarket.test',
-        password_hash: '$2a$10$0IqkELqVHIf.hT0TlOzXYe1BIqJEjUjfqD.fHzC1lWlVR.vg2oHd6', // admin123 bcryptado
+        password_hash: '$2a$10$5iZAVZkL5f/3oiHN7HZuceJyl4Kq7PT4qWM8ZfbphwWJWoOlsfXaG', // admin123 bcryptado
         role_id: 1,
         full_name: 'Administrador Sistema'
       },
       {
         username: 'gerente',
         email: 'gerente@minimarket.test',
-        password_hash: '$2a$10$5qxZTN/bqE0w8V7R.c/o5.0i1YT2S7K3m9n8p7q6r5s4t3u2v1', // gerente123
+        password_hash: '$2a$10$MaSCJ7gblPTtvFWv4cem5.euhlazSkTpW.vpLabV0IcRlonH1H4bK', // gerente123
         role_id: 3,
         full_name: 'Gerente Tienda'
       },
       {
         username: 'cajero',
         email: 'cajero@minimarket.test',
-        password_hash: '$2a$10$1s2d3f4g5h6j7k8l9m0n1p2q3r4s5t6u7v8w9x0y1z2a3b4c5', // cajero123
+        password_hash: '$2a$10$iLo2IxlxtLjR4nbgeo7Y2eoHgBi/pm.VgJu2oeCYS0Uc52NyI7VTi', // cajero123
         role_id: 2,
         full_name: 'Cajero Principal'
       }

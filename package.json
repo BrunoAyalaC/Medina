@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "init-db": "node scripts/init-db.js",
     "test": "cross-env NODE_ENV=test jest --config jest.config.cjs --detectOpenHandles --runInBand",
     "test:smoke": "cross-env NODE_ENV=test jest --config jest.config.cjs tests/backend/smoke.test.js --detectOpenHandles --runInBand",
     "test:journey": "cross-env NODE_ENV=test jest --config jest.config.cjs tests/backend/journey.test.js --detectOpenHandles --runInBand",

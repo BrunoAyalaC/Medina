@@ -86,7 +86,7 @@ INSERT INTO units (unit_code, unit_name, description, unit_type, conversion_fact
 ('G', 'Gramo', 'Unidad de peso', 'WEIGHT', 1),
 ('LB', 'Libra', 'Libra (453.6g)', 'WEIGHT', 453.6),
 ('OZ', 'Onza', 'Onza (28.35g)', 'WEIGHT', 28.35),
-('T', 'Tonelada', 'Tonelada métrica', 'WEIGHT', 1000000),
+('T', 'Tonelada', 'Tonelada métrica (1000 kg)', 'WEIGHT', 1000),
 
 -- Volumen
 ('L', 'Litro', 'Unidad de volumen 1000ml', 'VOLUME', 1000),
