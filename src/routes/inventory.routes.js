@@ -8,17 +8,17 @@ const router = express.Router();
 // Aplicar autenticación en todas las rutas
 router.use(authMiddleware);
 
-// GET - Obtener inventario actual (cualquier usuario autenticado)
-router.get('/', InventoryController.getInventory);
+// GET - Obtener inventario actual (stock)
+router.get('/stock', InventoryController.getInventory);
 
 // GET - Obtener historial de movimientos (Kardex)
 router.get('/kardex', InventoryController.getKardexHistory);
 
 // GET - Obtener productos con stock crítico
-router.get('/stock-critico', InventoryController.getStockCritico);
+router.get('/critico', InventoryController.getStockCritico);
 
 // GET - Obtener valor total del inventario
-router.get('/value', InventoryController.getInventoryValue);
+router.get('/valor', InventoryController.getInventoryValue);
 
 // POST - Registrar entrada de mercadería (Admin, Gerente)
 router.post('/entrada', requireRole('Administrador', 'Gerente'), entradaValidator, InventoryController.registerEntrada);

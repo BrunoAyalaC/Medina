@@ -1,6 +1,7 @@
 import InventoryService from '../services/InventoryService.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { validationResult } from 'express-validator';
+import { normalizeBDResponse } from '../utils/normalizeResponse.js';
 
 export class InventoryController {
   // GET /api/inventory - Obtener inventario actual
@@ -21,7 +22,8 @@ export class InventoryController {
 
     res.status(200).json({
       success: true,
-      data: result
+      data: normalizeBDResponse(result.data),
+      pagination: result.pagination
     });
   });
 
@@ -92,7 +94,7 @@ export class InventoryController {
       fechaHasta
     };
 
-    const result = await InventoryService.getKardexHistory(
+     const result = await InventoryService.getKardexHistory(
       filters,
       parseInt(page),
       parseInt(pageSize)
@@ -100,7 +102,8 @@ export class InventoryController {
 
     res.status(200).json({
       success: true,
-      data: result
+      data: normalizeBDResponse(result.data),
+      pagination: result.pagination
     });
   });
 
@@ -111,7 +114,7 @@ export class InventoryController {
     res.status(200).json({
       success: true,
       count: result.length,
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 
@@ -119,9 +122,17 @@ export class InventoryController {
   static getInventoryValue = asyncHandler(async (req, res) => {
     const result = await InventoryService.getInventoryValue();
 
+    // Normalizar campos de snake_case a camelCase
+    const normalized = {
+      totalValue: result.valor_venta || 0,
+      costValue: result.costo_total || 0,
+      totalProducts: result.total_productos || 0,
+      totalUnits: result.total_unidades || 0
+    };
+
     res.status(200).json({
       success: true,
-      data: result
+      data: normalized
     });
   });
 }

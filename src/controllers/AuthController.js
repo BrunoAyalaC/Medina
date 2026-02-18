@@ -1,6 +1,7 @@
 import AuthService from '../services/AuthService.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { body, validationResult } from 'express-validator';
+import { normalizeBDResponse } from '../utils/normalizeResponse.js';
 
 export class AuthController {
   // POST /api/auth/register
@@ -23,7 +24,7 @@ export class AuthController {
     res.status(201).json({
       success: true,
       message: 'Usuario registrado exitosamente',
-      data: user
+      data: normalizeBDResponse(user)
     });
   });
 
@@ -98,7 +99,7 @@ export class AuthController {
 
     res.status(200).json({
       success: true,
-      data: user
+      data: normalizeBDResponse(user)
     });
   });
 }

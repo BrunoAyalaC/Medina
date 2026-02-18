@@ -1,6 +1,7 @@
 import ProductService from '../services/ProductService.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { validationResult } from 'express-validator';
+import { normalizeBDResponse } from '../utils/normalizeResponse.js';
 
 export class ProductController {
   // GET /api/products - Obtener listado de productos con paginación y filtros
@@ -10,7 +11,7 @@ export class ProductController {
     const skip = (parseInt(page) - 1) * parseInt(pageSize);
     const take = parseInt(pageSize);
 
-    const result = await ProductService.getProducts(
+     const result = await ProductService.getProducts(
       skip,
       take,
       categoryId ? parseInt(categoryId) : null,
@@ -23,7 +24,7 @@ export class ProductController {
       page: parseInt(page),
       pageSize: parseInt(pageSize),
       count: result.length,
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 
@@ -35,7 +36,7 @@ export class ProductController {
 
     res.status(200).json({
       success: true,
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 
@@ -109,12 +110,12 @@ export class ProductController {
     if (stockMaximo !== undefined) updateData.stockMaximo = parseInt(stockMaximo);
     if (quantityPerUnit !== undefined) updateData.quantityPerUnit = parseInt(quantityPerUnit);
 
-    const result = await ProductService.updateProduct(parseInt(id), updateData);
+     const result = await ProductService.updateProduct(parseInt(id), updateData);
 
     res.status(200).json({
       success: true,
       message: 'Producto actualizado exitosamente',
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 
@@ -132,12 +133,12 @@ export class ProductController {
       parseInt(id),
       parseFloat(costPrice),
       parseFloat(sellingPrice)
-    );
+     );
 
     res.status(200).json({
       success: true,
       message: 'Precios actualizados exitosamente',
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 
@@ -156,7 +157,7 @@ export class ProductController {
     res.status(200).json({
       success: true,
       message: 'Stock actualizado exitosamente',
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 
@@ -182,7 +183,7 @@ export class ProductController {
     res.status(200).json({
       success: true,
       count: result.length,
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 }

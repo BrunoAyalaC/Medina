@@ -24,19 +24,23 @@ export class ReportsService {
 
     const result = await executeQuery(
       `SELECT 
-        DATE(s.fecha_venta) as fecha,
-        COUNT(s.sale_id) as total_ventas,
-        SUM(s.subtotal) as subtotal,
-        SUM(s.tax) as impuestos,
-        SUM(s.total) as total,
-        SUM(CASE WHEN pm.metodo_pago = 'EFECTIVO' THEN pm.monto ELSE 0 END) as total_efectivo,
-        SUM(CASE WHEN pm.metodo_pago IN ('YAPE', 'PLIN') THEN pm.monto ELSE 0 END) as total_qr,
-        SUM(CASE WHEN pm.metodo_pago = 'TARJETA' THEN pm.monto ELSE 0 END) as total_tarjeta
+        s.sale_id,
+        s.fecha_venta,
+        u.full_name as cajero,
+        s.subtotal,
+        s.tax,
+        s.total,
+        s.paid_amount,
+        s.change_amount,
+        s.state,
+        GROUP_CONCAT(pm.metodo_pago SEPARATOR ', ') as metodos_pago,
+        SUM(pm.monto) as total_pagado
        FROM sales s
+       LEFT JOIN users u ON s.user_id = u.user_id
        LEFT JOIN payment_methods pm ON s.sale_id = pm.sale_id
        ${whereClause}
-       GROUP BY DATE(s.fecha_venta)
-       ORDER BY fecha DESC`,
+       GROUP BY s.sale_id, s.fecha_venta, u.full_name, s.subtotal, s.tax, s.total, s.paid_amount, s.change_amount, s.state
+       ORDER BY s.fecha_venta DESC`,
       params
     );
 
@@ -205,6 +209,39 @@ export class ReportsService {
     );
 
     return result.recordset;
+  }
+
+  // Resumen de cajas
+  async getCashSummary(filters = {}) {
+    let whereClause = 'WHERE 1=1';
+    const params = [];
+
+    if (filters.fechaDesde) {
+      whereClause += ' AND DATE(cd.fecha_apertura) >= ?';
+      params.push(filters.fechaDesde);
+    }
+
+    if (filters.fechaHasta) {
+      whereClause += ' AND DATE(cd.fecha_apertura) <= ?';
+      params.push(filters.fechaHasta);
+    }
+
+    const result = await executeQuery(
+      `SELECT 
+        COUNT(cd.cash_drawer_id) as total_opened,
+        SUM(cd.monto_inicial) as total_inicial,
+        SUM(cd.monto_efectivo) as total_efectivo,
+        SUM(cd.monto_tarjeta) as total_tarjeta,
+        SUM(cd.monto_qr) as total_qr,
+        SUM(CASE WHEN cd.diferencia = 0 THEN 1 ELSE 0 END) as cajas_cuadradas,
+        SUM(CASE WHEN cd.diferencia > 0 THEN 1 ELSE 0 END) as cajas_faltantes,
+        SUM(CASE WHEN cd.diferencia < 0 THEN 1 ELSE 0 END) as cajas_sobrantes
+       FROM cash_drawer cd
+       ${whereClause}`,
+      params
+    );
+
+    return result.recordset[0];
   }
 }
 

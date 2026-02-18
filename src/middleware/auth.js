@@ -1,6 +1,14 @@
 import jwt from 'jsonwebtoken';
 import { AppError } from './errorHandler.js';
 
+// Contador para generar tokens únicos cuando se llaman muy rápido
+let tokenCounter = 0;
+const getUniqueTokenPayload = (base) => {
+  tokenCounter++;
+  // Agregar un pequeño nonce para hacer el token único
+  return { ...base, nonce: tokenCounter };
+};
+
 export const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
 
@@ -32,24 +40,29 @@ export const requireRole = (...roles) => {
 };
 
 export const generateToken = (user) => {
+  // Agregar un nonce pequeño para asegurar que cada token sea único
+  const payload = getUniqueTokenPayload({
+    userId: user.user_id,
+    username: user.username,
+    roleName: user.role_name,
+    email: user.email
+  });
+  
   return jwt.sign(
-    {
-      userId: user.user_id,
-      username: user.username,
-      roleName: user.role_name,
-      email: user.email
-    },
+    payload,
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRATION || '24h' }
   );
 };
 
 export const generateRefreshToken = (user) => {
+  const payload = getUniqueTokenPayload({
+    userId: user.user_id,
+    username: user.username
+  });
+  
   return jwt.sign(
-    {
-      userId: user.user_id,
-      username: user.username
-    },
+    payload,
     process.env.JWT_SECRET + '_refresh',
     { expiresIn: process.env.REFRESH_TOKEN_EXPIRATION || '7d' }
   );

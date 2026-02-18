@@ -1,6 +1,7 @@
 import CashDrawerService from '../services/CashDrawerService.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { validationResult } from 'express-validator';
+import { normalizeBDResponse } from '../utils/normalizeResponse.js';
 
 export class CashDrawerController {
   // POST /api/cash-drawer/open - Abrir caja
@@ -30,8 +31,8 @@ export class CashDrawerController {
     res.status(200).json({
       success: true,
       data: {
-        ...result,
-        summary
+        ...normalizeBDResponse(result),
+        summary: normalizeBDResponse(summary)
       }
     });
   });
@@ -93,7 +94,7 @@ export class CashDrawerController {
       fechaDesde
     };
 
-    const result = await CashDrawerService.getCashDrawerHistory(
+     const result = await CashDrawerService.getCashDrawerHistory(
       filters,
       parseInt(page),
       parseInt(pageSize)
@@ -101,7 +102,8 @@ export class CashDrawerController {
 
     res.status(200).json({
       success: true,
-      data: result
+      data: normalizeBDResponse(result.data),
+      pagination: result.pagination
     });
   });
 
@@ -113,7 +115,7 @@ export class CashDrawerController {
 
     res.status(200).json({
       success: true,
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 }

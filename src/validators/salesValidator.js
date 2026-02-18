@@ -1,9 +1,9 @@
 import { body } from 'express-validator';
 
 export const createSaleValidator = [
+  // CashDrawerID es opcional (se puede crear automáticamente)
   body('cashDrawerId')
-    .notEmpty()
-    .withMessage('CashDrawerID requerido')
+    .optional()
     .isInt({ min: 1 })
     .withMessage('CashDrawerID debe ser un número válido'),
   
@@ -17,71 +17,90 @@ export const createSaleValidator = [
     .isInt({ min: 1 })
     .withMessage('ProductID debe ser un número válido'),
   
+  // Aceptar tanto "cantidad" como "quantity"
   body('items.*.cantidad')
+    .optional()
     .isInt({ min: 1 })
     .withMessage('Cantidad debe ser un número positivo'),
   
+  body('items.*.quantity')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Cantidad debe ser un número positivo'),
+  
+  // Aceptar tanto "precioUnitario" como "price"
   body('items.*.precioUnitario')
+    .optional()
     .isDecimal()
     .withMessage('Precio unitario debe ser un número válido')
-    .custom(value => parseFloat(value) > 0)
+    .custom(value => !value || parseFloat(value) > 0)
     .withMessage('Precio unitario debe ser mayor a 0'),
   
+  body('items.*.price')
+    .optional()
+    .isDecimal()
+    .withMessage('Precio debe ser un número válido')
+    .custom(value => !value || parseFloat(value) > 0)
+    .withMessage('Precio debe ser mayor a 0'),
+  
+  // Todos estos son opcionales - el controlador los calcula si falta
   body('subtotal')
-    .notEmpty()
-    .withMessage('Subtotal requerido')
+    .optional()
     .isDecimal()
     .withMessage('Subtotal debe ser un número válido'),
   
   body('tax')
-    .notEmpty()
-    .withMessage('Tax requerido')
+    .optional()
     .isDecimal()
-    .withMessage('Tax debe ser un número válido')
-    .custom(value => parseFloat(value) >= 0)
-    .withMessage('Tax no puede ser negativo'),
+    .withMessage('Tax debe ser un número válido'),
   
   body('total')
-    .notEmpty()
-    .withMessage('Total requerido')
+    .optional()
     .isDecimal()
-    .withMessage('Total debe ser un número válido')
-    .custom(value => parseFloat(value) > 0)
-    .withMessage('Total debe ser mayor a 0'),
+    .withMessage('Total debe ser un número válido'),
   
+  // Aceptar tanto "paidAmount" como "amountPaid"
   body('paidAmount')
-    .notEmpty()
-    .withMessage('Monto pagado requerido')
+    .optional()
     .isDecimal()
-    .withMessage('Monto pagado debe ser un número válido')
-    .custom(value => parseFloat(value) > 0)
-    .withMessage('Monto pagado debe ser mayor a 0'),
+    .withMessage('Monto pagado debe ser un número válido'),
+  
+  body('amountPaid')
+    .optional()
+    .isDecimal()
+    .withMessage('Monto pagado debe ser un número válido'),
   
   body('change')
-    .notEmpty()
-    .withMessage('Vuelto requerido')
+    .optional()
     .isDecimal()
-    .withMessage('Vuelto debe ser un número válido')
-    .custom(value => parseFloat(value) >= 0)
-    .withMessage('Vuelto no puede ser negativo'),
+    .withMessage('Vuelto debe ser un número válido'),
   
+  // Aceptar tanto "paymentMethods" (array) como "paymentMethod" (string)
   body('paymentMethods')
-    .notEmpty()
-    .withMessage('Métodos de pago requeridos')
+    .optional()
     .isArray({ min: 1 })
     .withMessage('Métodos de pago debe ser un array con al menos 1 elemento'),
   
   body('paymentMethods.*.metodo')
+    .optional()
     .isIn(['EFECTIVO', 'TARJETA', 'YAPE', 'PLIN'])
     .withMessage('Método de pago inválido'),
   
   body('paymentMethods.*.monto')
+    .optional()
     .isDecimal()
-    .withMessage('Monto debe ser un número válido')
-    .custom(value => parseFloat(value) > 0)
-    .withMessage('Monto debe ser mayor a 0'),
+    .withMessage('Monto debe ser un número válido'),
   
-  body('paymentMethods.*.referencia')
+  body('paymentMethod')
     .optional()
     .trim()
+    .custom(value => !value || ['efectivo', 'tarjeta', 'yape', 'plin'].includes(value.toLowerCase()))
+    .withMessage('Método de pago inválido'),
+  
+  // Otros campos opcionales
+  body('discount')
+    .optional()
+    .isDecimal()
+    .withMessage('Descuento debe ser un número válido')
 ];
+

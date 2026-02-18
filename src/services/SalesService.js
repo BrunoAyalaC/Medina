@@ -12,13 +12,37 @@ export class SalesService {
       total,
       paidAmount,
       change,
-      paymentMethods  // Array de { metodo, monto, referencia }
+      paymentMethods,  // Array de { metodo, monto, referencia }
+      userId
     } = saleData;
+
+    // Determinar cashDrawerId - si no se proporciona, buscar la caja abierta del usuario
+    let activeCashDrawerId = cashDrawerId;
+    if (!activeCashDrawerId) {
+      const currentCash = await executeQuery(
+        'SELECT cash_drawer_id FROM cash_drawer WHERE user_id = ? AND state = ? ORDER BY fecha_apertura DESC LIMIT 1',
+        [userId, 'ABIERTA']
+      );
+      
+      if (currentCash.recordset.length > 0) {
+        activeCashDrawerId = currentCash.recordset[0].cash_drawer_id;
+      } else {
+        // Crear caja automáticamente si no existe
+        const result = await executeQuery(
+          `INSERT INTO cash_drawer (user_id, fecha_apertura, monto_inicial, state)
+           VALUES (?, CURRENT_TIMESTAMP, 0, 'ABIERTA')`,
+          [userId]
+        );
+        
+        const idResult = await executeQuery('SELECT LAST_INSERT_ID() as cash_drawer_id');
+        activeCashDrawerId = idResult.recordset[0].cash_drawer_id;
+      }
+    }
 
     // Validar caja
     const cash = await executeQuery(
       'SELECT * FROM cash_drawer WHERE cash_drawer_id = ? AND state = ?',
-      [cashDrawerId, 'ABIERTA']
+      [activeCashDrawerId, 'ABIERTA']
     );
 
     if (cash.recordset.length === 0) {
@@ -44,17 +68,33 @@ export class SalesService {
       }
     }
 
-    try {
-      // 1. Insertar venta
-      const saleResult = await executeQuery(
-        `INSERT INTO sales (cash_drawer_id, user_id, fecha_venta, subtotal, tax, total, paid_amount, change)
-         VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)`,
-        [cashDrawerId, saleData.userId, subtotal, tax, total, paidAmount, change]
-      );
+     try {
+       // 1. Insertar venta
+       const saleResult = await executeQuery(
+         `INSERT INTO sales (cash_drawer_id, user_id, fecha_venta, subtotal, tax, total, paid_amount, change_amount, state)
+          VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, 'COMPLETADA')`,
+         [activeCashDrawerId, saleData.userId, subtotal, tax, total, paidAmount, change]
+       );
 
-      // Obtener ID de la venta
-      const idResult = await executeQuery('SELECT LAST_INSERT_ID() as sale_id');
-      const saleId = idResult.recordset[0].sale_id;
+       // Obtener ID de la venta desde el resultado del INSERT
+       let saleId = saleResult.insertId;
+       
+       // Si insertId no está disponible, intentar obtenerlo de otra forma
+       // Usar una transacción simulada: buscar la venta más reciente por timestamp + params
+       if (!saleId || saleId === 0) {
+         const idResult = await executeQuery(
+           `SELECT sale_id FROM sales 
+            WHERE cash_drawer_id = ? AND user_id = ? 
+            ORDER BY fecha_venta DESC, sale_id DESC LIMIT 1`,
+           [activeCashDrawerId, saleData.userId]
+         );
+         
+         if (idResult.recordset && idResult.recordset.length > 0) {
+           saleId = idResult.recordset[0].sale_id;
+         } else {
+           throw new AppError('No se pudo obtener el ID de la venta insertada', 500);
+         }
+       }
 
       // 2. Insertar detalles de venta y actualizar stock
       for (const item of items) {
@@ -89,27 +129,29 @@ export class SalesService {
         );
       }
 
-      // 3. Registrar métodos de pago
-      for (const payment of paymentMethods) {
-        await executeQuery(
-          `INSERT INTO payment_methods (sale_id, metodo_pago, monto, referencia_pago)
-           VALUES (?, ?, ?, ?)`,
-          [saleId, payment.metodo, payment.monto, payment.referencia || null]
-        );
-      }
+       // 3. Registrar métodos de pago
+       if (paymentMethods && Array.isArray(paymentMethods) && paymentMethods.length > 0) {
+         for (const payment of paymentMethods) {
+           await executeQuery(
+             `INSERT INTO payment_methods (sale_id, metodo_pago, monto, referencia_pago)
+              VALUES (?, ?, ?, ?)`,
+             [saleId, payment.metodo, payment.monto, payment.referencia || null]
+           );
+         }
+       }
 
-      // 4. Actualizar montos en la caja
-      await executeQuery(
-        `UPDATE cash_drawer
-         SET monto_efectivo = monto_efectivo + 
-               COALESCE((SELECT SUM(monto) FROM payment_methods WHERE sale_id = ? AND metodo_pago = 'EFECTIVO'), 0),
-             monto_tarjeta = monto_tarjeta + 
-               COALESCE((SELECT SUM(monto) FROM payment_methods WHERE sale_id = ? AND metodo_pago = 'TARJETA'), 0),
-             monto_qr = monto_qr + 
-               COALESCE((SELECT SUM(monto) FROM payment_methods WHERE sale_id = ? AND metodo_pago IN ('YAPE', 'PLIN')), 0)
-         WHERE cash_drawer_id = ?`,
-        [saleId, saleId, saleId, cashDrawerId]
-      );
+       // 4. Actualizar montos en la caja
+       await executeQuery(
+         `UPDATE cash_drawer
+          SET monto_efectivo = monto_efectivo + 
+                COALESCE((SELECT SUM(monto) FROM payment_methods WHERE sale_id = ? AND metodo_pago = 'EFECTIVO'), 0),
+              monto_tarjeta = monto_tarjeta + 
+                COALESCE((SELECT SUM(monto) FROM payment_methods WHERE sale_id = ? AND metodo_pago = 'TARJETA'), 0),
+              monto_qr = monto_qr + 
+                COALESCE((SELECT SUM(monto) FROM payment_methods WHERE sale_id = ? AND metodo_pago IN ('YAPE', 'PLIN')), 0)
+          WHERE cash_drawer_id = ?`,
+         [saleId, saleId, saleId, activeCashDrawerId]
+       );
 
       return {
         saleId,

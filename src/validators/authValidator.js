@@ -55,11 +55,7 @@ export const changePasswordValidator = [
     .matches(/[a-z]/)
     .withMessage('La contraseña debe contener al menos una minúscula')
     .matches(/[0-9]/)
-    .withMessage('La contraseña debe contener al menos un número'),
-  
-  body('confirmPassword')
-    .custom((value, { req }) => value === req.body.newPassword)
-    .withMessage('Las contraseñas no coinciden')
+    .withMessage('La contraseña debe contener al menos un número')
 ];
 
 export const refreshTokenValidator = [

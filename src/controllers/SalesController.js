@@ -1,6 +1,7 @@
 import SalesService from '../services/SalesService.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { validationResult } from 'express-validator';
+import { normalizeBDResponse } from '../utils/normalizeResponse.js';
 
 export class SalesController {
   // POST /api/sales - Crear venta
@@ -18,18 +19,64 @@ export class SalesController {
       total, 
       paidAmount,
       change,
-      paymentMethods 
+      paymentMethods,
+      paymentMethod,  // Soporte para formato singular (tests)
+      amountPaid,     // Alias para paidAmount
+      discount        // Descuento (para cálculos)
     } = req.body;
 
-    const result = await SalesService.createSale({
+     // Normalizar items - convertir cantidad a cantidad y price a precioUnitario
+     let normalizedItems = items;
+     if (items && Array.isArray(items) && items.length > 0) {
+       normalizedItems = items.map(item => ({
+         productId: item.productId,
+         cantidad: item.quantity || item.cantidad,
+         precioUnitario: item.price || item.precioUnitario
+       }));
+     }
+
+    // Calcular subtotal si no se proporciona
+    let finalSubtotal = subtotal;
+    if (!finalSubtotal && normalizedItems) {
+      finalSubtotal = normalizedItems.reduce((sum, item) => 
+        sum + (item.cantidad * item.precioUnitario), 0
+      );
+    }
+
+    // Usar tax=0 si no se proporciona
+    let finalTax = tax || 0;
+
+    // Calcular total si no se proporciona
+    let finalTotal = total;
+    if (!finalTotal) {
+      finalTotal = (finalSubtotal || 0) - (discount || 0) + finalTax;
+    }
+
+    // Normalizar paymentMethod a paymentMethods si es necesario
+    let normalizedPaymentMethods = paymentMethods;
+    if (!normalizedPaymentMethods && paymentMethod) {
+      normalizedPaymentMethods = [
+        {
+          metodo: paymentMethod.toUpperCase(),
+          monto: amountPaid || paidAmount || finalTotal
+        }
+      ];
+    }
+
+      // Asegurar que paymentMethods sea un array
+      if (!normalizedPaymentMethods) {
+        normalizedPaymentMethods = [];
+      }
+
+      const result = await SalesService.createSale({
       cashDrawerId,
-      items,
-      subtotal,
-      tax,
-      total,
-      paidAmount,
-      change,
-      paymentMethods,
+      items: normalizedItems,
+      subtotal: finalSubtotal,
+      tax: finalTax,
+      total: finalTotal,
+      paidAmount: amountPaid || paidAmount || finalTotal,
+      change: change || 0,
+      paymentMethods: normalizedPaymentMethods,
       userId: req.user.userId
     });
 
@@ -48,7 +95,7 @@ export class SalesController {
 
     res.status(200).json({
       success: true,
-      data: result
+      data: normalizeBDResponse(result)
     });
   });
 
@@ -72,7 +119,7 @@ export class SalesController {
       fechaHasta
     };
 
-    const result = await SalesService.listSales(
+     const result = await SalesService.listSales(
       filters,
       parseInt(page),
       parseInt(pageSize)
@@ -80,7 +127,8 @@ export class SalesController {
 
     res.status(200).json({
       success: true,
-      data: result
+      data: normalizeBDResponse(result.data),
+      pagination: result.pagination
     });
   });
 

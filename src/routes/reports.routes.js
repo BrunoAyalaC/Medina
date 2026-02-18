@@ -8,13 +8,16 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // Reportes básicos (cualquier usuario autenticado)
-router.get('/ventas', ReportsController.getSalesReport);
-router.get('/productos-top', ReportsController.getTopProducts);
-router.get('/caja', ReportsController.getCashReport);
-router.get('/metodos-pago', ReportsController.getPaymentMethodsAnalysis);
-router.get('/alertas-inventario', ReportsController.getInventoryAlerts);
+router.get('/sales', ReportsController.getSalesReport);
+router.get('/products', ReportsController.getTopProducts);
+router.get('/cash', ReportsController.getCashReport);
+router.get('/payment-methods', ReportsController.getPaymentMethodsAnalysis);
+router.get('/alerts', ReportsController.getInventoryAlerts);
 
 // Reporte ejecutivo (solo Admin y Gerente)
-router.get('/resumen', requireRole('Administrador', 'Gerente'), ReportsController.getExecutiveSummary);
+router.get('/daily-summary', requireRole('Administrador', 'Gerente'), ReportsController.getExecutiveSummary);
+
+// Alias adicional para compatibilidad
+router.get('/cash-summary', ReportsController.getCashSummary);
 
 export default router;

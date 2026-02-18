@@ -19,7 +19,10 @@ router.post('/open', requireRole('Cajero', 'Administrador', 'Gerente'), openCash
 router.get('/current', CashDrawerController.getCurrentCashDrawer);
 
 // POST - Agregar movimiento de caja
-router.post('/movement', addMovementValidator, CashDrawerController.addMovement);
+router.post('/movements', addMovementValidator, CashDrawerController.addMovement);
+
+// GET - Obtener movimientos de caja
+router.get('/movements', CashDrawerController.getCashDrawerHistory);
 
 // POST - Cerrar caja (Cajero, Admin, Gerente)
 router.post('/close', closeCashDrawerValidator, CashDrawerController.closeCashDrawer);

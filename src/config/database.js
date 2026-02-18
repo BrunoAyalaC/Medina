@@ -65,9 +65,11 @@ export const executeQuery = async (query, params = []) => {
       const [rows, fields] = await connection.query(query, paramArray);
       
       // Retornar en formato compatible con tests esperados
+      // Incluir insertId si está disponible (para inserts)
       return {
         recordset: rows,
-        rowsAffected: [rows.length]
+        rowsAffected: [rows.length],
+        insertId: rows && rows.insertId ? rows.insertId : null
       };
     } finally {
       connection.release();
