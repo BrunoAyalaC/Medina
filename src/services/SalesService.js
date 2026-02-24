@@ -240,7 +240,7 @@ export class SalesService {
     const total = countResult.recordset[0].total;
 
     // Obtener datos
-    const dataParams = [...params, (page - 1) * pageSize, pageSize];
+    const dataParams = [...params, pageSize, (page - 1) * pageSize];
     const result = await executeQuery(
       `SELECT 
         s.sale_id,

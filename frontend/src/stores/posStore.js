@@ -10,12 +10,13 @@ const usePOSStore = create((set, get) => ({
   // Agregar item al carrito
   addItem: (product, quantity = 1) => {
     set((state) => {
-      const existingItem = state.items.find((item) => item.ProductID === product.ProductID);
+      const pid = product.productId || product.ProductID;
+      const existingItem = state.items.find((item) => (item.productId || item.ProductID) === pid);
 
       let newItems;
       if (existingItem) {
         newItems = state.items.map((item) =>
-          item.ProductID === product.ProductID
+          (item.productId || item.ProductID) === pid
             ? { ...item, cantidad: item.cantidad + quantity }
             : item
         );
@@ -24,8 +25,9 @@ const usePOSStore = create((set, get) => ({
           ...state.items,
           {
             ...product,
+            productId: pid,
             cantidad: quantity,
-            precioUnitario: product.SellingPrice,
+            precioUnitario: product.sellingPrice || product.SellingPrice,
           },
         ];
       }
@@ -40,7 +42,7 @@ const usePOSStore = create((set, get) => ({
   updateQuantity: (productId, quantity) => {
     set((state) => ({
       items: state.items.map((item) =>
-        item.ProductID === productId
+        (item.productId || item.ProductID) === productId
           ? { ...item, cantidad: Math.max(1, quantity) }
           : item
       ),
@@ -52,7 +54,7 @@ const usePOSStore = create((set, get) => ({
   // Remover item
   removeItem: (productId) => {
     set((state) => ({
-      items: state.items.filter((item) => item.ProductID !== productId),
+      items: state.items.filter((item) => (item.productId || item.ProductID) !== productId),
     }));
 
     get().calculateTotals();

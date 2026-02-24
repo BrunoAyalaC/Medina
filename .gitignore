@@ -35,3 +35,14 @@ coverage/
 # Temporal
 temp/
 tmp/
+# Documentación (excluyendo archivos .md)
+*.md
+
+# Imágenes PNG
+*.png
+
+# Scripts batch
+*.bat
+
+# Archivos de base de datos
+*.sql

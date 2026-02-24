@@ -26,7 +26,7 @@ export class CashDrawerController {
   static getCurrentCashDrawer = asyncHandler(async (req, res) => {
     const result = await CashDrawerService.getCurrentOpenCash(req.user.userId);
 
-    const summary = await CashDrawerService.getCashSummary(result.CashDrawerID);
+    const summary = await CashDrawerService.getCashSummary(result.cash_drawer_id);
 
     res.status(200).json({
       success: true,

@@ -186,6 +186,19 @@ export class ProductController {
       data: normalizeBDResponse(result)
     });
   });
+
+  // POST /api/products/:id/image - Subir imagen del producto
+  static uploadImage = asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No se recibió ninguna imagen' });
+    }
+    const BASE = `${req.protocol}://${req.get('host')}`;
+    res.json({
+      success: true,
+      message: 'Imagen actualizada correctamente',
+      data: { url: `${BASE}/uploads/products/${req.params.id}.png` }
+    });
+  });
 }
 
 export default ProductController;

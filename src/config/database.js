@@ -14,7 +14,7 @@ const mysqlConfig = {
   connectionLimit: parseInt(process.env.DB_POOL_MAX) || 5,
   queueLimit: 0,
   enableKeepAlive: true,
-  keepAliveInitialDelayMs: 0,
+  keepAliveInitialDelay: 0,
   decimalNumbers: true,
   supportBigNumbers: true,
   bigNumberStrings: false

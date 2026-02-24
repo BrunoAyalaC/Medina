@@ -10,6 +10,7 @@ import CashDrawerPage from './pages/CashDrawerPage';
 import InventoryPage from './pages/InventoryPage';
 import ReportsPage from './pages/ReportsPage';
 import ProductManagementPage from './pages/ProductManagementPage';
+import SettingsPage from './pages/SettingsPage';
 import './styles/globals.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -27,6 +28,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/products" element={<ProductManagementPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
 
         {/* Default Redirect */}

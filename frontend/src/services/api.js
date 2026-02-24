@@ -71,27 +71,37 @@ export const authService = {
 
 // Products services
 export const productService = {
-  getProducts: (page = 1, pageSize = 50, filters = {}) =>
-    apiClient.get('/products', { params: { page, pageSize, ...filters } }),
+  getProducts: (page = 1, pageSize = 50, searchTerm = '') =>
+    apiClient.get('/products', { params: { page, pageSize, searchTerm } }),
   getProductById: (id) => apiClient.get(`/products/${id}`),
+  createProduct: (data) => apiClient.post('/products', data),
+  updateProduct: (id, data) => apiClient.put(`/products/${id}`, data),
+  deleteProduct: (id) => apiClient.delete(`/products/${id}`),
+  uploadProductImage: (id, formData) => apiClient.post(`/products/${id}/image`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
+
+export const productImageUrl = (id) => {
+  const base = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace('/api', '');
+  return `${base}/uploads/products/${id}.png`;};
 
 // Inventory services
 export const inventoryService = {
   getInventory: (page = 1, pageSize = 50, filters = {}) =>
-    apiClient.get('/inventory', { params: { page, pageSize, ...filters } }),
+    apiClient.get('/inventory/stock', { params: { page, pageSize, ...filters } }),
   registerEntrada: (data) => apiClient.post('/inventory/entrada', data),
   registerSalida: (data) => apiClient.post('/inventory/salida', data),
   getKardex: (page = 1, pageSize = 50, filters = {}) =>
     apiClient.get('/inventory/kardex', { params: { page, pageSize, ...filters } }),
-  getStockCritico: () => apiClient.get('/inventory/stock-critico'),
-  getInventoryValue: () => apiClient.get('/inventory/value'),
+  getStockCritico: () => apiClient.get('/inventory/critico'),
+  getInventoryValue: () => apiClient.get('/inventory/valor'),
 };
 
 // Cash drawer services
 export const cashDrawerService = {
-  openCashDrawer: (montoInicial) =>
-    apiClient.post('/cash-drawer/open', { montoInicial }),
+  openCashDrawer: (data) =>
+    apiClient.post('/cash-drawer/open', data),
   getCurrentCashDrawer: () => apiClient.get('/cash-drawer/current'),
   addMovement: (data) => apiClient.post('/cash-drawer/movement', data),
   closeCashDrawer: (data) => apiClient.post('/cash-drawer/close', data),
@@ -114,17 +124,27 @@ export const salesService = {
 
 // Reports services
 export const reportsService = {
-  getSalesReport: (filters = {}) =>
-    apiClient.get('/reports/ventas', { params: filters }),
-  getTopProducts: (filters = {}) =>
-    apiClient.get('/reports/productos-top', { params: filters }),
+  getSalesReport: (days = 7, filters = {}) =>
+    apiClient.get('/reports/sales', { params: { days, ...filters } }),
+  getTopProducts: (limit = 10, filters = {}) =>
+    apiClient.get('/reports/products', { params: { limit, ...filters } }),
   getCashReport: (filters = {}) =>
-    apiClient.get('/reports/caja', { params: filters }),
+    apiClient.get('/reports/cash', { params: filters }),
   getExecutiveSummary: (filters = {}) =>
-    apiClient.get('/reports/resumen', { params: filters }),
+    apiClient.get('/reports/daily-summary', { params: filters }),
   getPaymentMethodsAnalysis: (filters = {}) =>
-    apiClient.get('/reports/metodos-pago', { params: filters }),
-  getInventoryAlerts: () => apiClient.get('/reports/alertas-inventario'),
+    apiClient.get('/reports/payment-methods', { params: filters }),
+  getPaymentMethodsReport: (days = 7, filters = {}) =>
+    apiClient.get('/reports/payment-methods', { params: { days, ...filters } }),
+  getInventoryAlerts: () => apiClient.get('/reports/alerts'),
+};
+
+export const settingsService = {
+  getQRStatus: () => apiClient.get('/settings/qr'),
+  uploadQR: (tipo, formData) => apiClient.post(`/settings/qr/${tipo}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteQR: (tipo) => apiClient.delete(`/settings/qr/${tipo}`),
 };
 
 export default apiClient;

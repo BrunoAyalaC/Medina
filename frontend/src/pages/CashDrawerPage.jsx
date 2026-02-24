@@ -1,257 +1,217 @@
 import { useEffect, useState } from 'react';
-import {
-  Plus, X, DollarSign, Clock, CheckCircle, AlertCircle, TrendingUp
-} from 'lucide-react';
+import { Plus, X, DollarSign, Clock, CheckCircle, AlertCircle, Wallet, History, TrendingUp, RefreshCw } from 'lucide-react';
 import { cashDrawerService } from '../services/api';
 import usePOSStore from '../stores/posStore';
 
-export default function CashDrawerPage() {
-  const { setCashDrawerId } = usePOSStore();
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+      <div className="glass-card w-full max-w-md p-6 animate-scale-in" style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-white">{title}</h2>
+          <button onClick={onClose} className="btn-ghost p-2 rounded-lg text-slate-400 hover:text-white">
+            <X size={18} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
 
-  const [cashDrawers, setCashDrawers] = useState([]);
-  const [currentCashDrawer, setCurrentCashDrawer] = useState(null);
+export default function CashDrawerPage() {
+  const { cashDrawerId, setCashDrawerId } = usePOSStore();
+  const [drawer, setDrawer] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('current');
   const [showOpenModal, setShowOpenModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [initialAmount, setInitialAmount] = useState('');
-  const [finalAmount, setFinalAmount] = useState('');
-  const [notes, setNotes] = useState('');
-  const [processing, setProcessing] = useState(false);
-  const [tab, setTab] = useState('current'); // current, history
-  const [movements, setMovements] = useState([]);
+  const [openAmount, setOpenAmount] = useState('');
+  const [closeNote, setCloseNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  // Cargar historial y caja actual
-  useEffect(() => {
-    fetchCashDrawers();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const fetchCashDrawers = async () => {
+  async function loadData() {
     setLoading(true);
     try {
-      const [currentRes, historyRes] = await Promise.all([
-        cashDrawerService.getCurrentCashDrawer().catch(() => null),
-        cashDrawerService.getCashDrawerHistory(1, 100)
+      // 1. Intentar obtener caja actual si no hay ID guardado
+      let activeId = cashDrawerId;
+      if (!activeId) {
+        try {
+          const r = await cashDrawerService.getCurrentCashDrawer();
+          activeId = r.data?.data?.cashDrawerId;
+          if (activeId) setCashDrawerId(activeId);
+        } catch { /* sin caja abierta — normal */ }
+      }
+
+      const [drawerRes, histRes] = await Promise.all([
+        activeId ? cashDrawerService.getCashSummary(activeId).catch(() => null) : Promise.resolve(null),
+        cashDrawerService.getCashDrawerHistory().catch(() => ({ data: { data: [] } }))
       ]);
-
-      if (currentRes?.data?.data) {
-        setCurrentCashDrawer(currentRes.data.data);
-        setCashDrawerId(currentRes.data.data.CashDrawerID);
-      }
-
-      if (historyRes?.data?.data?.data) {
-        setCashDrawers(historyRes.data.data.data);
-      }
-    } catch (error) {
-      console.error('Error cargando cajas:', error);
+      setDrawer(drawerRes?.data?.data || null);
+      setHistory(histRes?.data?.data || []);
+    } catch {
+      setError('Error cargando datos de caja');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleOpenCashDrawer = async () => {
-    if (!initialAmount) {
-      alert('Ingresa monto inicial');
-      return;
-    }
-
-    setProcessing(true);
+  async function handleOpen() {
+    if (!openAmount || isNaN(openAmount)) { setError('Ingresa un monto válido'); return; }
+    setSaving(true); setError('');
     try {
-      const response = await cashDrawerService.openCashDrawer({
-        initialAmount: parseFloat(initialAmount),
-        notes
-      });
-
-      setCurrentCashDrawer(response.data.data);
-      setCashDrawerId(response.data.data.CashDrawerID);
+      const res = await cashDrawerService.openCashDrawer({ montoInicial: parseFloat(openAmount) });
+      setCashDrawerId(res.data?.data?.cashDrawerId || res.data?.cashDrawerId);
       setShowOpenModal(false);
-      setInitialAmount('');
-      setNotes('');
-      alert('¡Caja abierta exitosamente!');
-    } catch (error) {
-      alert(error.response?.data?.error?.message || 'Error al abrir caja');
-    } finally {
-      setProcessing(false);
-    }
-  };
+      setOpenAmount('');
+      await loadData();
+    } catch { setError('Error al abrir la caja'); }
+    finally { setSaving(false); }
+  }
 
-  const handleCloseCashDrawer = async () => {
-    if (!currentCashDrawer) {
-      alert('No hay caja abierta');
-      return;
-    }
-
-    if (!finalAmount) {
-      alert('Ingresa monto final de caja');
-      return;
-    }
-
-    setProcessing(true);
+  async function handleClose() {
+    setSaving(true); setError('');
     try {
-      const response = await cashDrawerService.closeCashDrawer(currentCashDrawer.CashDrawerID, {
-        finalAmount: parseFloat(finalAmount),
-        notes
+      const totalVentas = parseFloat(drawer?.totalVentas || 0);
+      await cashDrawerService.closeCashDrawer({
+        cashDrawerId,
+        montoEfectivo: String(totalVentas),
+        montoTarjeta: '0',
+        montoQR: '0',
+        observaciones: closeNote
       });
-
-      // Actualizar historial
-      await fetchCashDrawers();
+      setCashDrawerId(null);
+      setDrawer(null);
       setShowCloseModal(false);
-      setFinalAmount('');
-      setNotes('');
-      alert('¡Caja cerrada exitosamente!');
-    } catch (error) {
-      alert(error.response?.data?.error?.message || 'Error al cerrar caja');
-    } finally {
-      setProcessing(false);
-    }
-  };
+      setCloseNote('');
+      await loadData();
+    } catch (e) { setError(e?.response?.data?.error?.message || 'Error al cerrar la caja'); }
+    finally { setSaving(false); }
+  }
 
-  const handleLoadMovements = async (cashDrawerId) => {
-    try {
-      const response = await cashDrawerService.getCashDrawerMovements(cashDrawerId);
-      setMovements(response.data.data || []);
-    } catch (error) {
-      console.error('Error cargando movimientos:', error);
-      setMovements([]);
-    }
-  };
+  const fmt = (n) => `S/ ${parseFloat(n || 0).toFixed(2)}`;
+
+  const kpis = drawer ? [
+    { label: 'Monto Inicial', value: fmt(drawer.montoInicial), icon: DollarSign, grad: 'from-indigo-500 to-violet-500' },
+    { label: 'Total Ventas', value: fmt(drawer.totalVentas), icon: TrendingUp, grad: 'from-cyan-500 to-indigo-500' },
+    { label: 'Total Ingresos', value: fmt(drawer.totalIngresos), icon: CheckCircle, grad: 'from-emerald-500 to-cyan-500' },
+    { label: 'Balance', value: fmt((parseFloat(drawer.montoInicial) || 0) + (parseFloat(drawer.totalVentas) || 0)), icon: Wallet, grad: 'from-amber-500 to-orange-500' },
+  ] : [];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0a0f1e, #0f172a, #12082b)' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4" />
+          <p className="text-slate-400 text-sm">Cargando datos de caja...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Gestión de Caja</h1>
-
-        {/* Tabs */}
-        <div className="flex gap-2 border-b border-gray-200">
-          <button
-            onClick={() => setTab('current')}
-            className={`px-4 py-2 font-medium border-b-2 transition ${
-              tab === 'current'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Caja Actual
+    <div className="p-6 min-h-screen space-y-6" style={{ background: 'linear-gradient(135deg, #0a0f1e, #0f172a, #12082b)' }}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg">
+            <Wallet size={22} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Caja</h1>
+            <p className="text-slate-400 text-sm">Gestión de apertura y cierre</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={loadData} className="btn-ghost p-2 rounded-lg text-slate-400 hover:text-white" title="Refrescar">
+            <RefreshCw size={18} />
           </button>
-          <button
-            onClick={() => setTab('history')}
-            className={`px-4 py-2 font-medium border-b-2 transition ${
-              tab === 'history'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Historial
-          </button>
+          {!cashDrawerId ? (
+            <button onClick={() => { setShowOpenModal(true); setError(''); }} className="btn-emerald flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm">
+              <Plus size={16} />Abrir Caja
+            </button>
+          ) : (
+            <button onClick={() => { setShowCloseModal(true); setError(''); }} className="btn-rose flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm">
+              <X size={16} />Cerrar Caja
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Caja Actual */}
-      {tab === 'current' && (
-        <div>
-          {currentCashDrawer ? (
-            <div className="space-y-6">
-              {/* Estado de Caja */}
-              <div className="bg-white rounded-lg shadow p-8 border-l-4 border-green-500">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                  <div>
-                    <p className="text-gray-600 text-sm mb-1">Estado</p>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="text-xl font-bold text-green-600">ABIERTA</span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-gray-600 text-sm mb-1">Monto Inicial</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      S/. {parseFloat(currentCashDrawer.OpeningBalance || 0).toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                 <p className="text-gray-700 text-sm mb-1">Total Ventas</p>
-                     <p className="text-2xl font-bold text-blue-700">
-                      S/. {parseFloat(currentCashDrawer.TotalSales || 0).toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                 <p className="text-gray-700 text-sm mb-1">Saldo Actual</p>
-                     <p className="text-2xl font-bold text-green-700">
-                      S/. {(parseFloat(currentCashDrawer.OpeningBalance || 0) + 
-                            parseFloat(currentCashDrawer.TotalSales || 0)).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
+      {/* Error alert */}
+      {error && (
+        <div className="glass-card border border-rose-500/30 p-4 flex items-center gap-3">
+          <AlertCircle size={18} className="text-rose-400 shrink-0" />
+          <p className="text-rose-300 text-sm">{error}</p>
+        </div>
+      )}
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowCloseModal(true)}
-                    className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-6 rounded-lg transition flex items-center gap-2"
-                  >
-                    <X className="w-5 h-5" />
-                    Cerrar Caja
-                  </button>
-                  <button
-                    onClick={() => handleLoadMovements(currentCashDrawer.CashDrawerID)}
-                    className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-6 rounded-lg transition flex items-center gap-2"
-                  >
-                    <Clock className="w-5 h-5" />
-                    Ver Movimientos
-                  </button>
-                </div>
+      {/* Tabs */}
+      <div className="flex gap-2 p-1 rounded-xl w-fit" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        {[{ id: 'current', icon: DollarSign, label: 'Caja Actual' }, { id: 'history', icon: History, label: 'Historial' }].map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>
+            <tab.icon size={15} />{tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Current Drawer Tab */}
+      {activeTab === 'current' && (
+        <div className="space-y-6">
+          {!cashDrawerId ? (
+            <div className="glass-card p-12 text-center">
+              <div className="inline-flex p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 mb-4">
+                <Wallet size={40} className="text-amber-400" />
               </div>
-
-              {/* Movimientos de Caja */}
-              {movements.length > 0 && (
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-lg font-bold text-gray-900 mb-4">Movimientos de Caja</h2>
+              <h3 className="text-lg font-semibold text-white mb-2">Caja Cerrada</h3>
+              <p className="text-slate-400 text-sm mb-6">Abre la caja para comenzar a operar y registrar ventas.</p>
+              <button onClick={() => { setShowOpenModal(true); setError(''); }} className="btn-emerald flex items-center gap-2 px-6 py-3 rounded-xl font-medium mx-auto">
+                <Plus size={16} />Abrir Caja Ahora
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-emerald-400 text-sm font-medium">Caja Abierta</span>
+                {drawer?.fechaApertura && (
+                  <span className="text-slate-400 text-xs ml-2 flex items-center gap-1">
+                    <Clock size={12} />{new Date(drawer.fechaApertura).toLocaleString('es-PE')}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {kpis.map(k => (
+                  <div key={k.label} className="glass-card p-5 hover:scale-[1.02] transition-transform duration-200">
+                    <div className={`inline-flex p-2.5 rounded-xl bg-gradient-to-br ${k.grad} shadow-lg mb-3`}>
+                      <k.icon size={18} className="text-white" />
+                    </div>
+                    <p className="text-slate-400 text-xs mb-1">{k.label}</p>
+                    <p className="text-white text-xl font-bold">{k.value}</p>
+                  </div>
+                ))}
+              </div>
+              {drawer?.transactions?.length > 0 && (
+                <div className="glass-card p-5">
+                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                    <Clock size={16} className="text-indigo-400" />Últimas transacciones
+                  </h3>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 font-semibold text-gray-900">Fecha</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-900">Tipo</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-900">Descripción</th>
-                          <th className="text-right py-3 px-4 font-semibold text-gray-900">Monto</th>
-                        </tr>
-                      </thead>
+                    <table className="table-dark w-full">
+                      <thead><tr><th>Hora</th><th>Tipo</th><th>Monto</th><th>Nota</th></tr></thead>
                       <tbody>
-                        {movements.map((movement) => (
-                           <tr key={movement.CashMovementID} className="border-b border-gray-100 hover:bg-gray-50">
-                             <td className="py-3 px-4 text-sm text-gray-700">
-                              {new Date(movement.CreatedAt).toLocaleDateString('es-PE', {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </td>
-                            <td className="py-3 px-4 text-sm">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                movement.Type === 'DEPOSIT' 
-                                  ? 'bg-green-100 text-green-800'
-                                  : movement.Type === 'WITHDRAWAL'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-blue-100 text-blue-800'
-                              }`}>
-                                {movement.Type === 'DEPOSIT' ? 'Depósito' : movement.Type === 'WITHDRAWAL' ? 'Retiro' : 'Venta'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-900">
-                              {movement.Description}
-                            </td>
-                            <td className="py-3 px-4 text-sm font-semibold text-right">
-                              <span className={movement.Type === 'DEPOSIT' || movement.Type === 'SALE' ? 'text-green-600' : 'text-red-600'}>
-                                {movement.Type === 'WITHDRAWAL' ? '-' : '+'} S/. {Math.abs(parseFloat(movement.Amount || 0)).toFixed(2)}
-                              </span>
-                            </td>
+                        {(drawer.transactions || []).slice(0, 10).map((t, i) => (
+                          <tr key={i}>
+                            <td className="text-slate-400">{t.createdAt ? new Date(t.createdAt).toLocaleTimeString('es-PE') : '—'}</td>
+                            <td><span className={`badge-${t.type === 'SALE' ? 'cyan' : t.type === 'EXPENSE' ? 'rose' : 'violet'}`}>{t.type}</span></td>
+                            <td className={t.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{fmt(t.amount)}</td>
+                            <td className="text-slate-400 text-xs">{t.note || '—'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -259,101 +219,40 @@ export default function CashDrawerPage() {
                   </div>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow p-12 text-center">
-              <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-gray-900 mb-2">No hay caja abierta</h2>
-              <p className="text-gray-600 mb-6">
-                Abre una caja para comenzar a registrar ventas
-              </p>
-               <button
-                onClick={() => setShowOpenModal(true)}
-                className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg transition inline-flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Abrir Nueva Caja
-              </button>
-            </div>
+            </>
           )}
         </div>
       )}
 
-      {/* Historial */}
-      {tab === 'history' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Historial de Cajas</h2>
-
-          {cashDrawers.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No hay historial de cajas</p>
+      {/* History Tab */}
+      {activeTab === 'history' && (
+        <div className="glass-card p-0 overflow-hidden">
+          {history.length === 0 ? (
+            <div className="p-12 text-center">
+              <History size={40} className="text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-400">No hay historial de cajas disponible.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="table-dark w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Apertura</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-900">Cierre</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-900">Monto Inicial</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-900">Total Ventas</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-900">Monto Final</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-900">Diferencia</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-900">Estado</th>
-                  </tr>
+                  <tr><th>Apertura</th><th>Cierre</th><th>Inicial</th><th>Ventas</th><th>Balance</th><th>Estado</th></tr>
                 </thead>
                 <tbody>
-                  {cashDrawers.map((cashDrawer) => {
-                    const inicial = parseFloat(cashDrawer.OpeningBalance || 0);
-                    const final = parseFloat(cashDrawer.ClosingBalance || 0);
-                    const diferencia = final - (inicial + parseFloat(cashDrawer.TotalSales || 0));
-
-                    return (
-                      <tr key={cashDrawer.CashDrawerID} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {new Date(cashDrawer.OpenedAt).toLocaleDateString('es-PE', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {cashDrawer.ClosedAt
-                            ? new Date(cashDrawer.ClosedAt).toLocaleDateString('es-PE', {
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : '-'}
-                        </td>
-                        <td className="py-3 px-4 text-sm font-semibold text-right">
-                          S/. {inicial.toFixed(2)}
-                        </td>
-                     <td className="py-3 px-4 text-sm font-semibold text-right text-blue-700">
-                           S/. {parseFloat(cashDrawer.TotalSales || 0).toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4 text-sm font-semibold text-right">
-                          S/. {final.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4 text-sm font-semibold text-right">
-                          <span className={diferencia >= -1 && diferencia <= 1 ? 'text-green-600' : 'text-red-600'}>
-                            {diferencia >= 0 ? '+' : ''} S/. {diferencia.toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            cashDrawer.Status === 'CLOSED'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {cashDrawer.Status === 'CLOSED' ? 'Cerrada' : 'Abierta'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {history.map((h, i) => (
+                    <tr key={i}>
+                      <td className="text-slate-300">{h.fechaApertura ? new Date(h.fechaApertura).toLocaleString('es-PE') : '—'}</td>
+                      <td className="text-slate-400">{h.fechaCierre ? new Date(h.fechaCierre).toLocaleString('es-PE') : '—'}</td>
+                      <td className="text-cyan-400">{fmt(h.montoInicial)}</td>
+                      <td className="text-emerald-400">{fmt(h.montoCierre)}</td>
+                      <td className="text-white font-semibold">{fmt((parseFloat(h.montoInicial)||0) + (parseFloat(h.montoCierre)||0))}</td>
+                      <td>
+                        {h.fechaCierre
+                          ? <span className="badge-slate flex items-center gap-1 w-fit"><CheckCircle size={11} />Cerrada</span>
+                          : <span className="badge-emerald flex items-center gap-1 w-fit"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />Abierta</span>}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -361,170 +260,53 @@ export default function CashDrawerPage() {
         </div>
       )}
 
-      {/* Modal: Abrir Caja */}
+      {/* Modal Abrir */}
       {showOpenModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Abrir Nueva Caja</h2>
-              <button
-                onClick={() => {
-                  setShowOpenModal(false);
-                  setInitialAmount('');
-                  setNotes('');
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-6 h-6" />
-              </button>
+        <Modal title="Abrir Caja" onClose={() => setShowOpenModal(false)}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-slate-300 text-sm font-medium mb-2">Monto Inicial (S/)</label>
+              <input type="number" className="input-glass w-full" placeholder="0.00" min="0" step="0.10"
+                value={openAmount} onChange={e => setOpenAmount(e.target.value)} autoFocus />
             </div>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Monto Inicial (S/.)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={initialAmount}
-                  onChange={(e) => setInitialAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Notas (opcional)
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Observaciones al abrir caja..."
-                  rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowOpenModal(false);
-                  setInitialAmount('');
-                  setNotes('');
-                }}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition"
-              >
-                Cancelar
-              </button>
-               <button
-                 onClick={handleOpenCashDrawer}
-                 disabled={processing}
-                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition"
-               >
-                {processing ? 'Abriendo...' : 'Abrir Caja'}
+            {error && <p className="text-rose-400 text-sm">{error}</p>}
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setShowOpenModal(false)} className="btn-ghost flex-1 py-2.5 rounded-xl text-sm font-medium">Cancelar</button>
+              <button onClick={handleOpen} disabled={saving} className="btn-emerald flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                {saving ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /> : <Plus size={16} />}
+                Abrir
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* Modal: Cerrar Caja */}
+      {/* Modal Cerrar */}
       {showCloseModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Cerrar Caja</h2>
-              <button
-                onClick={() => {
-                  setShowCloseModal(false);
-                  setFinalAmount('');
-                  setNotes('');
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {currentCashDrawer && (
-              <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Monto Inicial:</span>
-                  <span className="font-semibold">
-                    S/. {parseFloat(currentCashDrawer.OpeningBalance || 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Ventas:</span>
-                  <span className="font-semibold text-blue-600">
-                    S/. {parseFloat(currentCashDrawer.TotalSales || 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="border-t border-gray-200 pt-2 flex justify-between text-lg font-bold">
-                  <span>Esperado:</span>
-                  <span className="text-green-600">
-                    S/. {(parseFloat(currentCashDrawer.OpeningBalance || 0) + 
-                          parseFloat(currentCashDrawer.TotalSales || 0)).toFixed(2)}
-                  </span>
-                </div>
+        <Modal title="Cerrar Caja" onClose={() => setShowCloseModal(false)}>
+          <div className="space-y-4">
+            {drawer && (
+              <div className="glass p-4 rounded-xl space-y-2">
+                <div className="flex justify-between text-sm"><span className="text-slate-400">Monto Inicial</span><span className="text-white">{fmt(drawer.montoInicial)}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-400">Total Ventas</span><span className="text-emerald-400">{fmt(drawer.totalVentas)}</span></div>
+                <div className="flex justify-between text-sm font-semibold border-t border-white/10 pt-2"><span className="text-slate-300">Balance Final</span><span className="text-cyan-400">{fmt((parseFloat(drawer.montoInicial) || 0) + (parseFloat(drawer.totalVentas) || 0))}</span></div>
               </div>
             )}
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Monto Final Contado (S/.)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={finalAmount}
-                  onChange={(e) => setFinalAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Notas (opcional)
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Observaciones al cerrar caja..."
-                  rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
+            <div>
+              <label className="block text-slate-300 text-sm font-medium mb-2">Notas (opcional)</label>
+              <textarea className="input-glass w-full resize-none" rows={3} placeholder="Observaciones del cierre..."
+                value={closeNote} onChange={e => setCloseNote(e.target.value)} />
             </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowCloseModal(false);
-                  setFinalAmount('');
-                  setNotes('');
-                }}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-900 font-bold py-2 px-4 rounded-lg transition"
-              >
-                Cancelar
-              </button>
-               <button
-                 onClick={handleCloseCashDrawer}
-                 disabled={processing}
-                 className="flex-1 bg-red-700 hover:bg-red-800 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg transition"
-               >
-                {processing ? 'Cerrando...' : 'Cerrar Caja'}
+            {error && <p className="text-rose-400 text-sm">{error}</p>}
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setShowCloseModal(false)} className="btn-ghost flex-1 py-2.5 rounded-xl text-sm font-medium">Cancelar</button>
+              <button onClick={handleClose} disabled={saving} className="btn-rose flex-1 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                {saving ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /> : <X size={16} />}
+                Cerrar Caja
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

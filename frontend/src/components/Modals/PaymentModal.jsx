@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, QrCode, Copy, Check } from 'lucide-react';
-import QRCode from 'qrcode.react';
+import { QRCodeCanvas as QRCode } from 'qrcode.react';
 
 export default function PaymentModal({
   isOpen,
@@ -87,7 +87,6 @@ export default function PaymentModal({
                 size={200}
                 level="H"
                 includeMargin={true}
-                renderAs="canvas"
               />
             </div>
             <p className="text-sm text-gray-600 mb-3">

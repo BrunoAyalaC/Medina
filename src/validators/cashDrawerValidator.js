@@ -4,10 +4,8 @@ export const openCashDrawerValidator = [
   body('montoInicial')
     .notEmpty()
     .withMessage('Monto inicial requerido')
-    .isDecimal()
-    .withMessage('Monto inicial debe ser un número válido')
-    .custom(value => parseFloat(value) >= 0)
-    .withMessage('Monto inicial no puede ser negativo')
+    .custom(value => !isNaN(parseFloat(value)) && parseFloat(value) >= 0)
+    .withMessage('Monto inicial debe ser un número válido y no negativo')
 ];
 
 export const addMovementValidator = [
@@ -47,28 +45,19 @@ export const closeCashDrawerValidator = [
     .withMessage('CashDrawerID debe ser un número válido'),
   
   body('montoEfectivo')
-    .notEmpty()
-    .withMessage('Monto en efectivo requerido')
-    .isDecimal()
-    .withMessage('Monto en efectivo debe ser un número válido')
-    .custom(value => parseFloat(value) >= 0)
-    .withMessage('Monto en efectivo no puede ser negativo'),
+    .optional({ nullable: true })
+    .custom(value => value === undefined || value === null || (!isNaN(parseFloat(value)) && parseFloat(value) >= 0))
+    .withMessage('Monto en efectivo debe ser un número válido no negativo'),
   
   body('montoTarjeta')
-    .notEmpty()
-    .withMessage('Monto en tarjeta requerido')
-    .isDecimal()
-    .withMessage('Monto en tarjeta debe ser un número válido')
-    .custom(value => parseFloat(value) >= 0)
-    .withMessage('Monto en tarjeta no puede ser negativo'),
+    .optional({ nullable: true })
+    .custom(value => value === undefined || value === null || (!isNaN(parseFloat(value)) && parseFloat(value) >= 0))
+    .withMessage('Monto en tarjeta debe ser un número válido no negativo'),
   
   body('montoQR')
-    .notEmpty()
-    .withMessage('Monto en QR requerido')
-    .isDecimal()
-    .withMessage('Monto en QR debe ser un número válido')
-    .custom(value => parseFloat(value) >= 0)
-    .withMessage('Monto en QR no puede ser negativo'),
+    .optional({ nullable: true })
+    .custom(value => value === undefined || value === null || (!isNaN(parseFloat(value)) && parseFloat(value) >= 0))
+    .withMessage('Monto en QR debe ser un número válido no negativo'),
   
   body('observaciones')
     .optional()

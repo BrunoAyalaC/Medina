@@ -2,8 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getPool, closePool } from './config/database.js';
 import authRoutes from './routes/auth.routes.js';
+import settingsRoutes from './routes/settings.routes.js';
 import productRoutes from './routes/product.routes.js';
 import unitRoutes from './routes/unit.routes.js';
 import salesRoutes from './routes/sales.routes.js';
@@ -14,6 +17,8 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { loggerMiddleware } from './middleware/logger.js';
 
 dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +37,9 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(loggerMiddleware);
 
+// Servir imágenes de QR subidas
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // ============================================================================
 // HEALTH CHECK
 // ============================================================================
@@ -41,6 +49,31 @@ app.get('/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
+  });
+});
+
+// ============================================================================
+// RUTA RAÍZ
+// ============================================================================
+
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    name: 'Minimarket System API',
+    version: '1.0.0',
+    status: 'running',
+    environment: process.env.NODE_ENV,
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      products: '/api/products',
+      units: '/api/units',
+      sales: '/api/sales',
+      cashDrawer: '/api/cash-drawer',
+      inventory: '/api/inventory',
+      reports: '/api/reports'
+    },
+    frontend: `http://localhost:${process.env.FRONTEND_PORT || 3001}`
   });
 });
 
@@ -55,6 +88,7 @@ app.use('/api/sales', salesRoutes);
 app.use('/api/cash-drawer', cashDrawerRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // ============================================================================
 // RUTAS NO ENCONTRADAS

@@ -30,7 +30,7 @@ export class InventoryService {
     const total = countResult.recordset[0].total;
 
     // Obtener datos paginados
-    const pageParams = [...params, (page - 1) * pageSize, pageSize];
+    const pageParams = [...params, pageSize, (page - 1) * pageSize];
     const result = await executeQuery(
       `SELECT 
         p.product_id,
@@ -49,7 +49,7 @@ export class InventoryService {
         p.created_at,
         p.updated_at
       FROM products p
-      INNER JOIN categories c ON p.category_id = c.category_id
+      LEFT JOIN categories c ON p.category_id = c.category_id
       ${whereClause}
       ORDER BY p.product_name ASC
       LIMIT ? OFFSET ?`,
@@ -203,7 +203,7 @@ export class InventoryService {
     const total = countResult.recordset[0].total;
 
     // Obtener datos
-    const dataParams = [...params, (page - 1) * pageSize, pageSize];
+    const dataParams = [...params, pageSize, (page - 1) * pageSize];
     const result = await executeQuery(
       `SELECT 
         k.kardex_id,

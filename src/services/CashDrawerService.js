@@ -90,10 +90,15 @@ export class CashDrawerService {
   async closeCashDrawer(cashDrawerId, userData) {
     const { montoEfectivo, montoTarjeta, montoQR, observaciones } = userData;
 
+    // Valores numéricos con fallback 0
+    const montoEfectivoNum = parseFloat(montoEfectivo || 0) || 0;
+    const montoTarjetaNum  = parseFloat(montoTarjeta  || 0) || 0;
+    const montoQRNum       = parseFloat(montoQR       || 0) || 0;
+
     // Obtener datos actuales de caja
     const cash = await executeQuery(
       `SELECT cd.*, u.full_name FROM cash_drawer cd
-       INNER JOIN users u ON cd.user_id = u.user_id
+       LEFT JOIN users u ON cd.user_id = u.user_id
        WHERE cd.cash_drawer_id = ?`,
       [cashDrawerId]
     );
@@ -125,7 +130,7 @@ export class CashDrawerService {
 
     // Calcular totales esperados
     const montoEsperado = cajaDatos.monto_inicial + ventasDatos.total_ventas;
-    const montoReal = montoEfectivo + montoTarjeta + montoQR;
+    const montoReal = montoEfectivoNum + montoTarjetaNum + montoQRNum;
     const diferencia = montoReal - montoEsperado;
 
     try {
@@ -141,7 +146,7 @@ export class CashDrawerService {
              diferencia = ?,
              observaciones = ?
          WHERE cash_drawer_id = ?`,
-        [montoReal, montoEfectivo, montoTarjeta, montoQR, diferencia, observaciones, cashDrawerId]
+        [montoReal, montoEfectivoNum, montoTarjetaNum, montoQRNum, diferencia, observaciones, cashDrawerId]
       );
 
       return {
@@ -192,7 +197,7 @@ export class CashDrawerService {
     const total = countResult.recordset[0].total;
 
     // Obtener datos
-    const dataParams = [...params, (page - 1) * pageSize, pageSize];
+    const dataParams = [...params, pageSize, (page - 1) * pageSize];
     const result = await executeQuery(
       `SELECT 
         cd.cash_drawer_id,
@@ -208,7 +213,7 @@ export class CashDrawerService {
         cd.diferencia,
         cd.observaciones
        FROM cash_drawer cd
-       INNER JOIN users u ON cd.user_id = u.user_id
+       LEFT JOIN users u ON cd.user_id = u.user_id
        ${whereClause}
        ORDER BY cd.fecha_apertura DESC
        LIMIT ? OFFSET ?`,
@@ -239,7 +244,7 @@ export class CashDrawerService {
         COALESCE(SUM(s.total), 0) as total_ventas,
         cd.state
        FROM cash_drawer cd
-       INNER JOIN users u ON cd.user_id = u.user_id
+       LEFT JOIN users u ON cd.user_id = u.user_id
        LEFT JOIN cash_movements cm ON cd.cash_drawer_id = cm.cash_drawer_id
        LEFT JOIN sales s ON cd.cash_drawer_id = s.cash_drawer_id AND s.state = 'COMPLETADA'
        WHERE cd.cash_drawer_id = ?
