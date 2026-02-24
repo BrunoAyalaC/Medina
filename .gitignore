@@ -35,8 +35,9 @@ coverage/
 # Temporal
 temp/
 tmp/
-# Documentación (excluyendo archivos .md)
+# Documentación
 *.md
+*.txt
 
 # Imágenes PNG
 *.png
